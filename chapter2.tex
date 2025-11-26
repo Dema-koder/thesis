@@ -1,68 +1,243 @@
-\chapter{Literature Review}
+\chapter{Literature review}
 \label{chap:lr}
-\chaptermark{Second Chapter Heading}
+\chaptermark{Literature review}
 
+\section{Theoretical foundations of garbage collection}
+\label{sec:gc-theory}
 
-\Blindtext[2]
+\subsection{The concept of automatic memory management}
+\label{subsec:auto-memory}
 
-\section{Another Section}
-\Blindtext[1]
-\newpage
-With the widespread of computing systems, information processing, and net working, the practice of replacing paper documentation to electronic documentation has become more and more common. Electronic documentation within the workplace has several advantages over the traditional one, such as being easy to share, copy and edit the document. However, these advantages also present a problem. A malefactor, having access to the system, can easily copy and leak the document, without leaving any trace. Such actions are virtually undetectable in most systems, so, the malefactor goes unpunished. In this thesis, we propose one solution to the problem: digital watermarking. 
+Automatic garbage collection is a form of automatic memory management in which the system automatically releases memory occupied by objects that are no longer used by the program \cite{jones2011garbage}. This concept was first proposed by John McCarthy in 1959 in the context of the Lisp language and has since become an integral part of most modern high-level programming languages.
 
-Every electronic document within the protected system is marked with an invisible digital watermark, containing information about the user, accessing this particular document. Therefore, in case the protected company discovers the leaked document, they will be able to identify the machine of the malicious person and time when the document was leaked. This will allow inflicting punishment on the malefactor, recovering the costs of the leak, and potentially preventing future ones. 
+The main task of the garbage collector is to determine which objects in memory are no longer reachable from the root set, which includes:
+\begin{itemize}
+    \item Local variables in the active method call stack
+    \item Static fields of loaded classes
+    \item JNI links
+    \item Active execution threads
+\end{itemize}
 
-\begin{longtable}{c|c}
-\caption[This is the title I want to appear in the List of Tables]{Simulation Parameters} \label{table:secsimulation_params} \\
-\hline
-A & B  \\
-\hline
-\endfirsthead
-\multicolumn{2}{@{}l}{} \\
-\hline
-A & B \\
-\hline
-\endhead
-\hline
- \textbf{Parameter} & \textbf{Value}\\
- \hline
- Number of vehicles & $|\mathcal{V}|$\\
- \hline
- Number of RSUs & $|\mathcal{U}|$\\
- \hline
- RSU coverage radius & 150 m\\
- \hline
- V2V communication radius & 30 m\\
- \hline
- Smart vehicle antenna height & 1.5 m\\
- \hline
- RSU antenna height & 25 m\\
- \hline
- Smart vehicle maximum speed & $v_{max}$ m/s\\
- \hline
- Smart vehicle minimum speed & $v_{min}$ m/s\\
- \hline
- Common smart vehicle cache capacities & $[50, 100, 150, 200, 250]$ mb\\
- \hline
- Common RSU cache capacities & $[5000,1000,1500,2000,2500]$ mb\\
- \hline
- Common backhaul rates & $[75, 100, 150]$ mb/s\\
- \hline
-\end{longtable}
+Objects that are unreachable from the root set along the link chain are considered <<garbage>> and must be deleted \cite{jones2011garbage, lindholm2014java}.
 
-\begin{figure}[hbt]
-\centering
-\includegraphics[]{figs/images.png}
-\caption{One kernel at $x_s$ (\emph{dotted kernel}) or two kernels at
-$x_i$ and $x_j$ (\textit{left and right}) lead to the same summed estimate
-at $x_s$. This shows a figure consisting of different types of
-lines. Elements of the figure described in the caption should be set in
-italics, in parentheses, as shown in this sample caption.}
-\label{fig:secex}
-\end{figure}
+\subsection{Generational Hypothesis}
+\label{subsec:generational}
 
-This description implies several essential properties of the task at hand:
+Modern garbage collectors in Java are based on an empirical observation known as the weak generational hypothesis \cite{jones2011garbage, ungar1984generation}:
+
 \begin{enumerate}
-    \item Watermark must contain all necessary information, but still, be placeable and recognizable even on smaller images. The produced watermark must be compact but have the possibility to store enough information. 
-    \item To prevent easy tampering, the watermark must be invisible to the naked eye (and, preferably, to basic image parsing tools). If malefactor does not know about the existence of watermark, they might not even try to remove it and disable it. 
+    \item \textbf{Most objects live for a very short time} --- they are created, used and become unreachable within one or several milliseconds
+    
+    \item \textbf{There are few references from old objects to young ones} --- long-lived objects rarely receive references to newly created objects
+\end{enumerate}
+
+Ungar\cite{ungar1984generation} in his classic 1984 paper demonstrated that in typical Smalltalk programs, up to 98% of objects become garbage before reaching one megabyte of allocations. Similar observations were confirmed for Java applications in \cite{carpen2015performance, blackburn2006dacapo}.
+
+This hypothesis justifies the division of heap into generations \cite{jones2011garbage, oracle2023gc}:
+
+\begin{itemize}
+    \item \textbf{Young Generation} --- the area where all newly created objects are placed. Divided into:
+    \begin{itemize}
+        \item \textit{Eden space} --- the space where all objects are initially created
+        \item \textit{Survivor spaces (S0 and S1)} --- two spaces between which objects that survived the Eden garbage collection are copied
+    \end{itemize}
+    
+    \item \textbf{Old Generation (Tenured, old generation)} --- the area for long-lived objects that have survived several (usually 15, is set by the \texttt{-XX:MaxTenuringThreshold} parameter) garbage collection cycles in the young generation
+    
+    \item\textbf{Metaspace} (since Java 8, replaced Permanent Generation) --- an area for storing class metadata, not included in Java heap
+\end{itemize}
+
+Carpen-Amarie et al. \cite{carpen2015performance} experimentally confirms that all modern production-ready garbage collectors in OpenJDK are generational.
+
+\subsection{Basic garbage collection algorithms}
+\label{subsec:basic-algorithms}
+
+Jones et al. \cite{jones2011garbage} systematize fundamental garbage collection algorithms:
+
+\subsubsection{Mark-and-Sweep}
+
+The classical two-phase algorithm proposed by McCarthy:
+
+\begin{enumerate}
+    \item \textit{Mark phase (marking phase)}: Starting from the root objects, the reachability graph is traversed, marking all reachable objects
+    
+    \item \textit{Sweep phase}: Sequential traversal of the entire heap area, freeing up memory occupied by unlabeled objects
+\end{enumerate}
+
+\textbf{Main disadvantages}: memory fragmentation after multiple build cycles; the need to completely stop the application (stop-the-world pause); linear dependence of build time on heap size.
+
+\subsubsection{Copying Collection}
+
+An algorithm based on dividing memory into two semi-spaces. The assembly process:
+
+\begin{enumerate}
+    \item The active semi-area (fromspace) contains all objects
+\item When starting GC, live objects are copied to the inactive area (workspace)
+    \item Fromspace is completely cleared
+    \item The roles of fromspace and tospace are reversed
+\end{enumerate}
+
+\textbf{Advantages}: complete absence of memory fragmentation; simple and fast allocation of objects (bump-the-pointer allocation); build time is proportional to the number of live objects, not the size of the heap.
+
+\textbf{Disadvantages}: requires twice as much address space; overhead of copying objects; the need to update all references to moved objects.
+
+This algorithm is used for the Young Generation in almost all modern GC\cite{carpen2015performance, oracle2023gc}.
+
+\subsubsection{Mark-and-Compact}
+
+Combines mark-and-sweep ideas with fragmentation elimination. Used for Old Generation in most GC JVMs. Carpen-Amarie et al. \cite{carpen2015performance} notes that the compactification phase is the most time-consuming operation, especially on large heaps (64GB+).
+
+\section{JVM Garbage Collector architecture}
+\label{sec:gc-architectures}
+
+\subsection{Serial Garbage Collector}
+\label{subsec:serial-gc}
+
+Serial GC is the simplest implementation of the garbage collector, using a single thread for all operations \cite{oracle2023gc}. It is optimal for single-processor systems or applications with a small heap (up to 100MB).
+
+Pufek et al. \cite{pufek2019analysis} notes that Serial GC demonstrates the best performance in 25% of DaCapo test scenarios, provided there are no GC pauses at all, which is explained by the lack of overhead on synchronization mechanisms.
+
+\subsection{Parallel Garbage Collector}
+\label{subsec:parallel-gc}
+
+Parallel GC was the standard choice in JDK 7--8 and is designed to maximize the throughput of the \cite{carpen2015performance, oracle2023gc} system. Uses multiple threads for both Young and Old Generation builds.
+
+Carpen-Amarie et al. \cite{carpen2015performance} has revealed the following patterns in its extensive research on a 48-core NUMA system:
+
+\begin{enumerate}
+    \item \textbf{Performance stability}: ParallelOld shows consistently good results, providing the best execution time in more than 20% of DaCapo test scenarios
+    
+    \item \textbf{Memory pressure criticality: On a memory-intensive application (Apache Cassandra with 64GB heap), ParallelOld demonstrates catastrophic pauses of up to 4 minutes}
+\end{enumerate}
+
+\subsection{Garbage First (G1) Garbage Collector}
+\label{subsec:g1-gc}
+
+G1 GC has become the standard collector since JDK 9 and represents a region-based approach to garbage collection \cite{detlefs2004garbage, oracle2023gc, jep307}.
+
+\textbf{Key architectural innovations}:
+
+\begin{enumerate}
+    \item\textbf{Region-based heap layout}: The heap is divided into N regions of equal size (usually 1--32MB). Each region can dynamically become: Eden region, Survivor region, Old region, or Humongous region (for objects >50\% of the region's size)
+    
+    \item\textbf{Predictable pause times}: G1 tries to keep pauses within the target value set by \texttt{-XX:MaxGCPauseMillis} (200ms by default)
+    
+    \item \textbf{Incremental compression}: compaction is performed incrementally only for selected regions
+\end{enumerate}
+
+\textbf{Critical Improvement: Parallel Full GC (JDK 10)}
+
+JEP 307\cite{jep307} describes the replacement of a single-threaded Full GC with a parallel mark-sweep-compact algorithm. Pufek et al. \cite{pufek2019analysis} demonstrates a dramatic improvement in G1 performance between JDK 8 and JDK 11: on the pmd benchmark, G1 becomes almost 2 times faster, reducing GC time from 1409ms to ~700ms.
+
+Grgić et al. \cite{grgic2018comparison} on JDK 9, we found that G1 outperforms other GCS on multithreaded applications (xalan, tomcat), but loses on h2 (almost 2 times worse than Parallel).
+
+\subsection{Z Garbage Collector (ZGC)}
+\label{subsec:zgc}
+
+ZGC --- scalable low-latency collector, presented as experimental in JDK 11, production-ready in JDK 15 \cite{jep333, oracle2023gc}.
+
+\textbf{Key Features}:
+
+\begin{enumerate}
+    \item\textbf{Sub-millisecond pauses}: guaranteed STW pauses <10ms regardless of heap size
+    
+    \item\textbf{Scalable}: works with heap from 8MB to 16TB
+    
+    \item\textbf{Colored pointers}: Using unused bits of 64-bit pointers to store metadata
+    
+    \item \textbf{Concurrent compression}: compaction is performed in parallel with the application
+\end{enumerate}
+
+\textbf{Performance characteristics}: Pause times <10ms regardless of heap size; Memory overhead ~20\%; Throughput 5--15\% lower than Parallel/G1.
+
+\subsection{Shenandoah GC}
+\label{subsec:shenandoah}
+
+Shenandoah, developed by Red Hat, presents an alternative approach to low-latency garbage collection \cite{flood2016shenandoah, jep189}.
+
+\textbf{Distinctive features}:
+
+\begin{enumerate}
+    \item\textbf{Concurrent evacuation}: Objects are moved in parallel with the application
+    
+    \item \textbf{Forwarding pointers}: an additional word in the heading of the object to support competitive movement
+    
+    \item\textbf{Independence from heap size}: the pause time does not depend on the size of the heap
+\end{enumerate}
+
+Flood et al. \cite{flood2016shenandoah} provides a comparison of Shenandoah with G1: Pause times <10ms for Shenandoah vs 50--200ms for G1; Throughput is 10--15\% lower than Parallel GC.
+
+\section{Existing GC performance studies}
+\label{sec:existing-research}
+
+\subsection{DaCapo Benchmark Suite}
+\label{subsec:dacapo}
+
+Blackburn et al. \cite{blackburn2006dacapo} developed DaCapo as a comprehensive set of benchmarks for evaluating memory management performance in JVM. Unlike previous synthetic tests, DaCapo includes real open-source applications with non-trivial memory allocation patterns: avrora (microcontroller simulator), h2 (embedded database), pmd (static code analyzer), xalan (XSLT transformations), tomcat (web server).
+
+\subsection{Study by Carpen-Amarie et al. (2015)}
+\label{subsec:carpen-study}
+
+Carpen-Amarie et al. \cite{carpen2015performance} conducted extensive testing of all JDK 8 assemblers on DaCapo suite on a 48-core NUMA system.
+
+\textbf{Key results}:
+
+\begin{enumerate}
+    \item\textbf{ParallelOld is the most stable}: shows good performance in >20\% of tests
+    
+    \item\textbf{G1 worst with forced full GC}: significant slowdown with forced full builds
+    
+    \item \textbf{Unexpected patterns}: For CMS and ParNew on the h2 benchmark, the authors found a counterintuitive relationship --- a smaller Young Gen sometimes leads to a \textit{increase} in the average pause time
+\end{enumerate}
+
+\textbf{Research on Apache Cassandra}: The authors tested Cassandra DB with YCSB workload. The results showed: ParallelOld causes pauses of up to 4 minutes (240 seconds) on the stress test; G1 and CMS --- pauses of 3--5 seconds, which is still critical for distributed systems.
+
+\textbf{The key conclusion of the authors}: <<Even G1 and ConcurrentMarkSweep collectors introduced pauses of a few seconds (up to 3.5 seconds for G1), which might aﬀect the application in case of a real-time or distributed system, where the nodes need to communicate without delay.>>.
+
+\subsection{Evolution of G1 GC (JDK 8 → JDK 11)}
+\label{subsec:g1-evolution}
+
+Grgić et al. \cite{grgic2018comparison} conducted a comparative study on JDK 9.0.1 when G1 just became the default GC. The results showed mixed results: G1 is superior on multithreaded applications (tomcat, xalan), but loses on h2.
+
+Pufek et al. \cite{pufek2019analysis} expanded the study to JDK 11--12, tracking the evolution of G1. \textbf{Dramatic improvement of G1}: on the pmd benchmark, G1 in JDK 11 became almost 2 times faster compared to JDK 8 (1409ms →~700ms). The authors attribute this to Parallel Full GC\cite{jep307}.
+
+\subsection{Scalability of the study}
+\label{subsec:scalability}
+
+Gidra et al. \cite{gidra2011assessing} conducted a fundamental study of the scalability of stop-the-world GC on multicore systems. \textbf{Conclusion}: Existing GCS reach the <<ceiling>> scalability on 24--32 cores for most workloads due to bottlenecks in root scanning and reference processing.
+
+\section{Gaps in existing research}
+\label{sec:research-gaps}
+
+The analysis of the reviewed literature reveals the following limitations:
+
+\begin{enumerate}
+    \item\textbf{Temporal gap}: Most of the comprehensive studies were performed on JDK 8-11, while JDK 17 LTS and JDK 21 LTS contain significant improvements
+    
+    \item\textbf{Application domain gap}: Existing research focuses on synthetic benchmarks (DaCapo) or specialized applications (Cassandra DB). There is no systematic study of typical \textbf{web applications} with Spring Boot/ microservice architecture
+    
+    \item\textbf{Metrics gap}: Not enough attention is paid to tail latency (p99, p999) --- critical for web applications with SLA
+    
+    \item\textbf{Modern collectors gap}: There is no comprehensive ZGC/Shenandoah research on realistic web workloads. Generational ZGC (JDK 21) has not been studied at all
+    
+    \item\textbf{Configuration trade-offs gap}: The interaction of heap size × Young/Old ratio × Has not been sufficiently studied GC choice
+    
+    \item\textbf{Practical guidance gap}: Research yields results, but not a decision framework for GC selection
+\end{enumerate}
+
+\section{Positioning of this study}
+\label{sec:positioning}
+
+This study aims to fill the identified gaps through:
+
+\begin{enumerate}
+    \item \textbf{Version relevance}: Testing on JDK 17 LTS and JDK 21 LTS
+    
+    \item \textbf{Relevant application domain}: Creating a realistic Spring Boot application with REST API, JPA/Hibernate, connection pooling, caching
+    
+    \item \textbf{Comprehensive metrics system}: Focus on tail latency (p99, p999), SLA compliance, latency distribution under load
+    
+    \item \textbf{Modern collectors}: Inclusion of ZGC, Shenandoah, Generational ZGC (JDK 21)
+    
+    \item \textbf{Practical recommendations}: Development of decision tree and migration guidelines for production systems
 \end{enumerate}

@@ -1,5 +1,11 @@
 \begin{abstract}
-% skip one line to make the abstract start with indent
 
-My abstract starts from here.
+The paper compares the performance of Java garbage collectors (Serial, Parallel, G1, ZGC, Shenandoah) on typical Spring Boot web applications. Existing research uses synthetic benchmarks (DaCapo) or application-specific (Cassandra), leaving a gap in understanding GC behavior in common web services with REST APIs, databases, and caching.
+
+The work includes a review of the literature on GC theory and architecture, the development of a testing methodology tailored to the specifics of web applications, and conducting experiments on a reference Spring Boot application. The latest JDK 17 LTS and JDK 21 LTS are used, including modern low-latency assemblers that have not been studied before in web applications. Special attention is paid to the metrics critical for production: tail latency (p99, p999), SLA compliance, distribution of delays under load.
+
+Results --- practical recommendations for choosing and configuring GC: decision tree and migration guidelines for real enterprise applications. The work fills in research gaps and provides applicable solutions for optimizing Java web applications.
+
+\textbf{Keywords}: Java, garbage collection, JVM, G1 GC, ZGC, Shenandoah, performance, Web applications, Spring Boot.
+
 \end{abstract}

@@ -1,112 +1,113 @@
 \chapter{Introduction}
 \label{chap:intro}
-\chaptermark{Optional running chapter heading}
-\section{Spacing \& Type}
-\label{sec:section}
+\chaptermark{Introduction}
 
-This is a section. This is a citation without brackets. and this is one with brackets \cite{A}. Multiple \cite{A,B,C} Here's a reference to a subsection: \ref{sec:subsection}. Citation of an online article \cite{D}. Citation of an online proceeding \cite{F}. The body of the text and abstract must be double-spaced except for footnotes or long quotations. Fonts such as Times Roman, Bookman, New Century Schoolbook, Garamond, Palatine, and Courier are acceptable and commonly found on most computers. The same type must be used throughout the body of the text. The font size must be 10 point or larger and footnotes\footnote{This is a footnote.} must be two sizes smaller than the text\footnote{This is another footnote.} but no smaller than eight points. Chapter, section, or other headings should be of a consistent font and size throughout the ETD, as should labels for illustrations, charts, and figures.
+\section{Relevance of the study}
+\label{sec:relevance}
 
-\subsection{Creating a Subsection}
-\label{sec:subsection}
+Java continues to be one of the main tools for developing enterprise applications and web services. According to the Stack Overflow Developer Survey 2025, this language is consistently in the top 10 in popularity, and the Spring Framework has actually become the de facto standard in enterprise development. At the same time, the requirements for performance and responsiveness of applications are constantly growing, which makes the issues of effective memory management more relevant.
 
-\subsubsection{Creating a Subsubsection}
-\subsubsection{Creating a Subsubsection}
-\subsubsection{Creating a Subsubsection}
+One of the key features of Java is automatic Garbage Collection (GC), which saves programmers from having to manually manage memory. However, this convenience comes at a price: the operation of the garbage collector directly affects the performance of the application. This effect is especially noticeable under high loads and strict requirements for minimum delays \cite{carpen2015performance}.
 
-\paragraph{This is a heading level below subsubsection}
+Research shows \cite{carpen2015performance, pufek2019analysis} that different garbage collectors behave completely differently on multicore systems. For example, Parallel GC, which has long been the default choice in JDK 8, provides high overall throughput, but it can freeze an application for several seconds. On the other hand, the more modern G1 GC (which appeared as the default in JDK 9) tries to keep pauses short and predictable, though sometimes at the cost of reducing overall performance.
 
-And this is a quote: 
-%
-\begin{quote}
-\blindtext
-\end{quote}
+In the context of modern architectures - microservices, containerization, cloud platforms - these issues are becoming even more acute.:
 
-\begin{figure}[hbt]
-\centering
-\includegraphics[]{figs/images.png}
-\caption{One kernel at $x_s$ (\emph{dotted kernel}) or two kernels at
-$x_i$ and $x_j$ (\textit{left and right}) lead to the same summed estimate
-at $x_s$. This shows a figure consisting of different types of
-lines. Elements of the figure described in the caption should be set in
-italics, in parentheses, as shown in this sample caption.}
-\label{fig:example}
-\end{figure}
+\begin{enumerate}
+    \item Response time is critical for the user experience. If the service responds for longer than 100-200 milliseconds, users start to notice and get annoyed.
+    
+    \item Resource efficiency directly affects cloud infrastructure bills. The extra 500 MB of memory for each pod in Kubernetes is real money
+    
+    \item Predictability is important for SLA performance. If the service suddenly freezes for 3 seconds due to garbage collection, this may violate the service level agreement.
+\end{enumerate}
 
-This is a table:
-% currsize is not set in the long table environment, so we need to set it before we set it up.
-\makeatletter
-\let\@currsize\normalsize
-\makeatother
+The problem is that most of the existing research on \cite{carpen2015performance, pufek2019analysis, grgic2018comparison} focuses either on synthetic benchmarks like DaCapo suite, or on specific applications like Apache Cassandra. But how garbage collectors behave in regular web applications on Spring Boot --- with their HTTP requests, database connections, caching --- has not been studied enough. Although such applications make up the lion's share of Java development.
 
-% tabular environments are set to be single-spaced in the  thesis class,  but long tables do not use tabular
-% to get around this, set the spacing to single spacing at the start of the long table environment, and set it back to double-spacing at the end of it
+\section{Purpose and objectives of the study}
+\label{sec:objectives}
 
-\begin{longtable}{c|c|c}
-\caption[This is the title I want to appear in the List of Tables]{This Is a Table Example} \label{tab:pfams} \\
-\hline
-A & B & C \\
-\hline
-\endfirsthead
-\multicolumn{3}{@{}l}{} \\
-\hline
-A & B & C\\
-\hline
-\endhead
-a1 & b1 & c1 \\
-a2 & b2 & c2\\
-a3 & b3 & c3\\
-a4 & b4 & c4\\
-\hline
-\end{longtable}
+\textbf{Purpose of the work} --- to understand how the main Java garbage collectors (Serial GC, Parallel GC, G1 GC, ZGC, Shenandoah GC) work in real web applications, and to develop practical recommendations for their selection and configuration.
 
-The package ``upgreek'' allows us to use non-italicized lower-case greek letters. See for yourself: $\upbeta$, $\bm\upbeta$, $\beta$, $\bm\beta$. Next is a numbered equation:
-\begin{align}
-\label{eq:name}
-\|\bm{X}\|_{2,1}={\underbrace{\sum_{j=1}^nf_j(\bm{X})}_{\text{convex}}}=\sum_{j=1}^n\|\bm{X}_{.,j}\|_2
-\end{align}
-The reference to equation (\ref{eq:name}) is clickable. 
-\section[Theorems, Corollaries, Lemmas, Proofs, Remarks, Definitions and Examples]{Theorems, Corollaries, Lemmas, Proofs, Remarks, Definitions,and Examples}
+To achieve this goal, it is necessary to solve the following \textbf{tasks}:
 
-\begin{theorem}
-\label{thm:onlytheorem}
-\blindtext
-\end{theorem}
+\begin{enumerate}
+    \item To study the existing literature on the mechanisms of operation of various garbage collectors in modern versions of the JDK (from 8th to 21st)
+    
+    \item Develop a testing methodology that takes into account the specifics of web applications:
+    \begin{itemize}
+        \item Different types of load (simple CRUD operations, complex queries, traffic spikes)
+\item Interaction with databases and external APIs
+        \item Web-specific object creation patterns (request-scoped beans, DTOs, etc.)
+\end{itemize}
+    
+    \item Create a typical Spring Boot testing application that includes:
+    \begin{itemize}
+        \item REST API with different endpoints
+        \item Working with the database via JPA/Hibernate
+        \item Data caching
+        \item Asynchronous processing elements
+    \end{itemize}
+    
+    \item Conduct experiments with each garbage collector, measuring:
+    \begin{itemize}
+        \item Response time and its distribution (percentages are especially important --- p95, p99, p999)
+\item Throughput (how many requests per second are processed)
+\item How often GC pauses occur and how long they are
+        \item Memory consumption and speed of creation of new objects
+        \item CPU load
+    \end{itemize}
+    
+    \item Analyze the received data statistically and understand how the behavior of different GC depends on:
+\begin{itemize}
+        \item Size of allocated memory (heap)
+        \item Type of application load
+        \item of JVM Configuration Parameters
+    \end{itemize}
+    
+    \item As a result --- make practical recommendations in the form of an understandable decision tree: <<if you have such and such requirements, take such and such GC with such and such settings>>
+\end{enumerate}
 
-\begin{proof}
-I'm a (very short) proof.
-\end{proof}
+\section{Scientific novelty}
+\label{sec:novelty}
 
-\begin{lemma}
-I'm a lemma.
-\end{lemma}
+The scientific novelty of this work consists in several aspects:
 
-\begin{corollary}
-I include a reference to Thm. \ref{thm:onlytheorem}.
-\end{corollary}
+\begin{enumerate}
+    \item \textbf{Focus on real web applications}. For the first time, a detailed comparison of modern garbage collectors (including the relatively new ZGC and Shenandoah) is carried out on typical Spring Boot applications. This is important because classic benchmarks like DaCapo don't always reflect the reality of web development.
+    
+    \item \textbf{A comprehensive approach to metrics}. In addition to the standard indicators (duration of pauses, throughput), the work pays special attention to tail latency - the extreme values of delays that are critical for compliance with SLA in production
+    
+    \item \textbf{Current versions}. The study covers the latest LTS versions of Java (17 and 21) with the latest improvements in garbage collectors. Most of the existing work stops at JDK 8--11, which is already outdated
+    
+    \item \textbf{Practical orientation}. The results are immediately translated into specific recommendations for real systems, rather than remaining purely academic calculations.
+\end{enumerate}
 
-\begin{proposition}
-I'm a proposition.
-\end{proposition}
+\section{Practical significance}
+\label{sec:significance}
 
-\begin{remark}
-I'm a remark. 
-\end{remark}
+The results of this work can be useful to different specialists.:
 
-\begin{definition}
-I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. I'm a definition. 
-\end{definition}
+\begin{enumerate}
+    \item \textbf{For developers} --- to understand which choices of the garbage collector and JVM settings affect their applications, and to make informed decisions instead of working with default settings.
+    
+    \item\textbf{for DevOps engineers and SRE} --- for proper JVM configuration when deployed to Docker/Kubernetes or cloud platforms. Performance problems in production are often associated with suboptimal GC settings.
+    
+    \item \textbf{Architects} --- when choosing a technology stack and resource planning. Understanding how much memory and CPU an application really needs, taking into account the overhead from the GC, helps to avoid both overpayments for excess resources and problems due to their shortage.
+    
+    \item \textbf{For educational purposes} --- as structured material with practical examples for studying JVM tuning and best practices of working with Java in production
+\end{enumerate}
 
-\begin{example}
-I'm an example.
-\end{example}
+\section{The structure of the work}
+\label{sec:structure}
 
+The work is organized as follows:
 
-\section[Optional table of contents heading]{Section with\\ linebreaks in\\the
-name}
+\textbf{Chapter~\ref{chap:lr}} --- literature review. It discusses the theoretical foundations of garbage collection, describes the architecture of various GCS in Java, and analyzes existing research on their performance.
 
+\textbf{Chapter~\ref{chap:met}} --- research methodology. It describes how the test application is designed, which load scenarios are used, which metrics are measured, and which tools are used.
 
-\Blindtext[2]
+\textbf{Chapter~\ref{chap:impl}} --- experimental results. Data on the performance of various GCS under different conditions are presented and analyzed.
 
+\textbf{Chapter~\ref{chap:eval}} --- practical recommendations and discussion. Tips on choosing and configuring garbage collectors are formulated, the limitations of the study and possible directions for further work are discussed.
 
-
-
+The \textbf{Conclusion} summarizes the results and formulates the main conclusions.
