@@ -122,15 +122,19 @@
 
 \begin{document}
 
-\includepdf[pages=-]{title.pdf}
+\includepdf[
+    pages=-,
+    pagecommand={\thispagestyle{empty}},
+    offset=23mm -25mm
+]{title.pdf}
 \tableofcontents
-\listoftables
-\listoffigures
+% \listoftables
+% \listoffigures
 \newpage
 
 
 \include{chapters/abstract}
-\setcounter{page}{7}
+\setcounter{page}{5}
 % set manually the number, from which Chapter 1 starts!
 % Why do we put 7 in this case?
 % Title page - page 1
@@ -143,13 +147,13 @@
 
 \include{chapters/chapter1}
 \include{chapters/chapter2}
-\include{chapters/chapter3}
-\include{chapters/chapter4}
-\include{chapters/chapter5}
-\include{chapters/chapter6}
+% \include{chapters/chapter3}
+% \include{chapters/chapter4}
+% \include{chapters/chapter5}
+% \include{chapters/chapter6}
 
 
 %% REFERENCES
 \printbibliography[heading=bibintoc,title={Bibliography cited}]
-\include{chapters/appex}
+% \include{chapters/appex}
 \end{document}
