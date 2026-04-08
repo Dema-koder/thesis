@@ -1,0 +1,334 @@
+\chapter{Literature review}
+\label{chap:lr}
+\chaptermark{Literature review}
+
+\section{Theoretical foundations of garbage collection}
+\label{sec:gc-theory}
+
+\subsection{Automatic memory management principles}
+\label{subsec:auto-memory}
+
+Automatic garbage collection is a form of automatic memory management in which the system automatically releases memory occupied by objects that are no longer used by the program \cite{jones2011garbage}. This concept, first proposed by John McCarthy in 1959 for Lisp, has become fundamental to modern high-level languages, trading deterministic deallocation for programmer productivity and memory safety.
+
+The garbage collector's primary task is identifying unreachable objects from the root set:
+\begin{itemize}
+    \item Local variables in active method call stacks
+    \item Static fields of loaded classes
+    \item JNI references from native code
+    \item Active thread objects
+\end{itemize}
+
+Objects unreachable via any reference path from these roots are considered garbage and eligible for reclamation \cite{jones2011garbage, lindholm2014java}. This reachability-based approach ensures memory safety --- programs cannot access deallocated memory --- but introduces non-deterministic collection timing, complicating real-time system design.
+
+\subsection{Generational Hypothesis}
+\label{subsec:generational}
+
+Modern Java GC implementations exploit the weak generational hypothesis \cite{jones2011garbage, ungar1984generation}, an empirical observation with two key claims:
+
+\begin{enumerate}
+    \item \textbf{Infant mortality}: Most objects become unreachable shortly after allocation (milliseconds to seconds)
+    \item \textbf{Generational independence}: Old objects rarely acquire references to young objects
+\end{enumerate}
+
+Ungar's seminal 1984 study \cite{ungar1984generation} demonstrated that in Smalltalk programs, up to 98\% of objects die before one megabyte of subsequent allocations. While these findings have been broadly validated for Java \cite{carpen2015performance, blackburn2006dacapo}, it is important to note that \textbf{workload characteristics significantly affect this ratio}. Database-heavy applications with extensive caching may exhibit lower infant mortality rates, while request-scoped web services align closely with the hypothesis.
+
+This observation motivated generational heap organization \cite{jones2011garbage, oracle2023gc}:
+
+\begin{itemize}
+    \item \textbf{Young Generation}: Newly allocated objects. Subdivided into Eden (initial allocation space) and Survivor spaces (S0, S1) for objects surviving initial collections
+    \item \textbf{Old Generation (Tenured)}: Long-lived objects promoted after surviving multiple (typically 15) Young GC cycles
+    \item \textbf{Metaspace} (since Java 8): Class metadata storage, allocated from native memory rather than Java heap
+\end{itemize}
+
+Carpen-Amarie et al. \cite{carpen2015performance} confirm all production-ready OpenJDK collectors employ generational strategies, though implementation details vary significantly.
+
+\subsection{Fundamental algorithms}
+\label{subsec:basic-algorithms}
+
+Jones et al. \cite{jones2011garbage} provide comprehensive taxonomy of GC algorithms. We summarize key approaches relevant to modern JVM implementations:
+
+\textbf{Mark-and-Sweep}: Two-phase algorithm marking reachable objects then sweeping unmarked ones. Simple but suffers from fragmentation and requires stop-the-world pauses proportional to heap size.
+
+\textbf{Copying Collection}: Divides memory into semi-spaces, copying live objects to free space. Eliminates fragmentation and enables fast bump-pointer allocation, but requires 2× address space and incurs copying overhead. Used universally for Young Generation due to high mortality rates \cite{carpen2015performance, oracle2023gc}.
+
+\textbf{Mark-and-Compact}: Marks live objects then relocates them to eliminate fragmentation. Addresses Mark-and-Sweep limitations but compaction is expensive, especially for large heaps. Carpen-Amarie et al. \cite{carpen2015performance} identify compaction as the primary bottleneck in 64GB+ heaps.
+
+\section{JVM Garbage Collector architectures}
+\label{sec:gc-architectures}
+
+\subsection{Serial GC --- Simplicity and single-threaded execution}
+\label{subsec:serial-gc}
+
+Serial GC uses a single thread for all collection phases \cite{oracle2023gc}, making it suitable for single-processor systems or small heaps (<100MB). Its primary advantage is absence of synchronization overhead.
+
+\textbf{Critical evaluation}: Pufek et al. \cite{pufek2019analysis} report Serial GC outperforms multithreaded collectors in 25\% of DaCapo scenarios when no pauses occur, highlighting synchronization costs in parallel implementations. However, this result \textbf{has limited practical relevance} for modern deployments: (1) test conditions (no GC pauses) are unrealistic for production workloads, (2) single-threaded collection scales poorly beyond 100MB heaps, and (3) modern servers universally provide multiple cores, negating Serial GC's niche advantage. The finding nevertheless illustrates an important principle: parallelization overhead can exceed benefits for sufficiently small workloads.
+
+\subsection{Parallel GC --- Throughput optimization}
+\label{subsec:parallel-gc}
+
+Parallel GC (default in JDK 7--8) maximizes application throughput by using multiple threads for both Young and Old Generation collections \cite{carpen2015performance, oracle2023gc}.
+
+\textbf{Critical evaluation}: Carpen-Amarie et al. \cite{carpen2015performance} conducted extensive testing on 48-core NUMA systems, revealing:
+
+\begin{enumerate}
+    \item ParallelOld demonstrates \textbf{consistent performance} (best execution time in >20\% of tests), suggesting robust tuning
+    \item However, on memory-intensive Cassandra with 64GB heap, pauses reached \textbf{catastrophic 4 minutes}, rendering it unsuitable for latency-sensitive services
+\end{enumerate}
+
+\textbf{Methodological limitations}: The study varied heap size and Young/Old ratios but did not systematically explore thread count configuration or NUMA-aware allocation. Additionally, testing focused on forced full GC scenarios less representative of production behavior. These gaps limit generalizability of findings.
+
+\textbf{Unresolved questions}: (1) At what heap size does Parallel GC become impractical? (2) Can NUMA-optimized allocation mitigate worst-case pause times? (3) How do these results translate to web application workloads with different allocation patterns?
+
+\subsection{G1 GC --- Predictable latency through region-based collection}
+\label{subsec:g1-gc}
+
+G1 GC (default since JDK 9) represents architectural departure from fixed-generation designs, using region-based heap with dynamic role assignment \cite{detlefs2004garbage, oracle2023gc, jep307}.
+
+\textbf{Key innovations}:
+\begin{enumerate}
+    \item \textbf{Region-based layout}: Heap divided into uniform regions (1--32MB) dynamically categorized as Eden, Survivor, Old, or Humongous (for large objects)
+    \item \textbf{Pause time targeting}: Aims to meet user-specified pause time goal (default 200ms via \texttt{-XX:MaxGCPauseMillis}) by selecting subset of regions for collection
+    \item \textbf{Incremental compaction}: Compacts selected regions rather than entire Old generation, spreading compaction cost
+\end{enumerate}
+
+\textbf{Parallel Full GC (JDK 10)}: JEP 307 \cite{jep307} replaced single-threaded Full GC with parallel mark-sweep-compact, dramatically improving worst-case behavior. Pufek et al. \cite{pufek2019analysis} measured 50\% GC time reduction on pmd benchmark (1409ms → 700ms) between JDK 8 and JDK 11.
+
+\textbf{Critical analysis of contradictory findings}:
+
+Prior research reveals inconsistent G1 performance across workloads:
+
+\begin{itemize}
+    \item Carpen-Amarie et al. \cite{carpen2015performance} (JDK 8): G1 performs worst with forced full GC, competitive without
+    \item Grgić et al. \cite{grgic2018comparison} (JDK 9): G1 excels on multithreaded apps (tomcat, xalan) but underperforms on h2 database benchmark by 2×
+    \item Pufek et al. \cite{pufek2019analysis} (JDK 11): Significant improvement attributed to Parallel Full GC
+\end{itemize}
+
+These \textbf{contradictions highlight methodological challenges}: (1) DaCapo benchmarks may not represent web application behavior, (2) JDK version differences confound comparisons, (3) configuration parameters (heap size, region size, pause targets) were not systematically controlled. The field lacks principled guidelines for when G1's region-based approach outperforms generational collectors.
+
+\textbf{Remaining gaps}: (1) Optimal region sizing for different application profiles, (2) trade-off quantification between pause time targets and throughput, (3) behavior under containerized memory constraints.
+
+\subsection{ZGC --- Scalable low-latency collection}
+\label{subsec:zgc}
+
+ZGC targets sub-10ms pauses independent of heap size (8MB--16TB) through colored pointers and concurrent compaction \cite{jep333, oracle2023gc}.
+
+\textbf{Technical approach}:
+\begin{enumerate}
+    \item \textbf{Colored pointers}: Store metadata in unused 64-bit pointer bits, enabling concurrent object relocation
+    \item \textbf{Load barriers}: Check pointer metadata on dereference, redirecting to relocated objects
+    \item \textbf{Concurrent compaction}: Relocate objects while application runs, using load barriers for consistency
+\end{enumerate}
+
+\textbf{Performance characteristics}: Achieves <10ms pauses but with ~20\% memory overhead and 5--15\% throughput reduction versus Parallel/G1 \cite{oracle2023gc}.
+
+\textbf{Critical evaluation}: While Oracle documentation \cite{oracle2023gc} and JEP specifications \cite{jep333} describe ZGC architecture comprehensively, \textbf{independent empirical evaluation is scarce}. Existing literature lacks systematic comparison of ZGC against G1/Shenandoah on web application workloads. The 20\% memory overhead and throughput penalty warrant careful consideration: for memory-constrained deployments or CPU-bound services, these costs may outweigh latency benefits.
+
+\subsection{Shenandoah GC --- Alternative low-latency approach}
+\label{subsec:shenandoah}
+
+Shenandoah (developed by Red Hat) achieves low-latency goals via forwarding pointers rather than colored pointers \cite{flood2016shenandoah, jep189}.
+
+\textbf{Key differences from ZGC}:
+\begin{enumerate}
+    \item \textbf{Forwarding pointers}: Additional header word per object (vs metadata in pointer bits)
+    \item \textbf{Lower memory overhead}: ~10--12\% vs ZGC's ~20\%
+    \item \textbf{32/64-bit support}: Works on 32-bit platforms unlike ZGC
+\end{enumerate}
+
+Flood et al. \cite{flood2016shenandoah} report <10ms pauses vs 50--200ms for G1, with 10--15\% throughput reduction.
+
+\textbf{Critical evaluation}: Flood et al.'s evaluation \cite{flood2016shenandoah} uses a single "realistic" workload without detailed characterization, limiting generalizability. The comparison against G1 pre-dates Parallel Full GC improvements, potentially overstating relative benefits. \textbf{Crucially, no independent replication of these results exists}, and the study lacks statistical rigor (no confidence intervals, limited repetitions). The field needs systematic comparison of modern Shenandoah (JDK 21) against contemporary G1 and ZGC implementations across diverse workloads.
+
+\section{Existing empirical GC performance research}
+\label{sec:existing-research}
+
+\subsection{DaCapo Benchmark Suite}
+\label{subsec:dacapo}
+
+Blackburn et al. \cite{blackburn2006dacapo} developed DaCapo as realistic alternative to synthetic benchmarks, comprising open-source applications with non-trivial memory behavior: avrora (AVR microcontroller simulator), h2 (embedded database), pmd (static analyzer), xalan (XSLT processor), tomcat (servlet container).
+
+\textbf{Critical assessment}: While DaCapo significantly improved upon prior synthetic benchmarks, it exhibits \textbf{important limitations for web application relevance}:
+
+\begin{enumerate}
+    \item \textbf{Computational focus}: Benchmarks emphasize CPU-intensive tasks (simulation, compilation, analysis) rather than I/O-bound request handling characteristic of web services
+    \item \textbf{Batch orientation}: Applications run to completion rather than serving continuous requests, missing warm-up effects and steady-state behavior critical for long-running servers
+    \item \textbf{Allocation patterns}: May not reflect request-scoped object lifecycles, ORM-generated graphs, or DTO serialization patterns in web frameworks
+    \item \textbf{Dated implementations}: Suite created in 2006, predating modern frameworks (Spring Boot, reactive patterns) and deployment practices (containers, cloud platforms)
+\end{enumerate}
+
+These limitations suggest DaCapo findings \textbf{may not generalize} to contemporary web services, motivating workload-specific evaluation.
+
+\subsection{Carpen-Amarie et al. (2015) --- Large-scale multicore study}
+\label{subsec:carpen-study}
+
+Carpen-Amarie et al. \cite{carpen2015performance} conducted comprehensive evaluation on 48-core NUMA system, testing all JDK 8 collectors across DaCapo suite and Apache Cassandra.
+
+\textbf{Key findings}:
+\begin{enumerate}
+    \item ParallelOld most consistent (>20\% best execution times)
+    \item G1 severely underperforms with forced full GC
+    \item Counter-intuitive observation: Smaller Young Generation sometimes increases average pause time for CMS/ParNew
+\end{enumerate}
+
+\textbf{Cassandra results}: ParallelOld exhibited 4-minute pauses under memory pressure; G1/CMS reduced this to 3--5 seconds but still critical for distributed systems.
+
+\textbf{Critical evaluation of methodology}:
+
+\textit{Strengths}:
+\begin{itemize}
+    \item Large-scale hardware (48 cores) reflects modern server capabilities
+    \item Combined synthetic benchmarks with real application (Cassandra)
+    \item Systematic parameter variation (heap size, Young/Old ratios, TLAB)
+\end{itemize}
+
+\textit{Limitations}:
+\begin{itemize}
+    \item \textbf{Forced full GC artifact}: Testing with forced full GC between iterations is unrepresentative of production behavior, artificially penalizing G1 which handles incremental collection well but struggles with forced full compaction
+    \item \textbf{Configuration space underexplored}: Did not systematically vary thread counts, did not test NUMA-aware allocation, limited exploration of G1-specific parameters (region size, pause targets)
+    \item \textbf{Limited statistical rigor}: No confidence intervals reported, unclear repetition count, no discussion of measurement variance
+    \item \textbf{Cassandra specificity}: Database workload (heavy caching, long-lived objects) differs fundamentally from web service patterns
+\end{itemize}
+
+\textbf{Unresolved questions}: (1) How do results change without forced GC artifact? (2) What is optimal configuration for each GC given hardware? (3) Do findings apply to web applications with different memory patterns?
+
+\subsection{G1 evolution across JDK versions}
+\label{subsec:g1-evolution}
+
+Multiple studies tracked G1 improvements across releases:
+
+Grgić et al. \cite{grgic2018comparison} (JDK 9) found mixed results: G1 excels on multithreaded apps but underperforms 2× on h2. Authors note configuration sensitivity but do not systematically explore parameter space.
+
+Pufek et al. \cite{pufek2019analysis} (JDK 11--12) demonstrated dramatic improvement: 50\% GC time reduction on pmd and h2, attributed to Parallel Full GC \cite{jep307}.
+
+\textbf{Critical synthesis}: These studies collectively demonstrate G1's maturation trajectory but suffer from \textbf{methodological inconsistencies}:
+\begin{itemize}
+    \item Different hardware (48-core NUMA vs 4-core laptop vs 8GB desktop)
+    \item Different heap sizes (1GB vs 16--64GB)
+    \item Different workloads (DaCapo variants, with/without forced GC)
+\end{itemize}
+
+This \textbf{complicates cross-study comparison} and limits ability to isolate improvement sources (algorithmic vs hardware vs workload effects). The field would benefit from standardized evaluation methodology enabling reproducible comparisons across JDK versions.
+
+\subsection{Scalability limitations}
+\label{subsec:scalability}
+
+Gidra et al. \cite{gidra2011assessing} identified scalability bottlenecks in stop-the-world collectors:
+\begin{itemize}
+    \item Root scanning achieves only 3.2× speedup on 8 cores (vs theoretical 8×)
+    \item Reference processing creates sequential bottleneck
+    \item NUMA remote access overhead reaches 40\%
+\end{itemize}
+
+\textbf{Conclusion}: GC scalability plateaus at 24--32 cores for most workloads.
+
+\textbf{Critical evaluation}: Study uses modified JVM with extensive instrumentation, potentially affecting results. Furthermore, findings reflect JDK 6 implementation; modern collectors (G1, ZGC, Shenandoah) were specifically designed to address these bottlenecks. \textbf{Contemporary validation} of these scalability limits on current JDK versions and collectors is needed.
+
+\section{Critical gap analysis and research positioning}
+\label{sec:research-gaps}
+
+Systematic review of existing literature reveals several critical gaps that limit practical applicability for modern web service deployments:
+
+\subsection{Temporal gap --- Outdated JDK coverage}
+\label{subsec:gap-temporal}
+
+\textbf{Issue}: Comprehensive studies \cite{carpen2015performance, grgic2018comparison} predominantly evaluate JDK 8--11, missing significant improvements in JDK 17 LTS and JDK 21 LTS:
+\begin{itemize}
+    \item Generational ZGC (JDK 21) --- fundamental architecture change addressing original ZGC's throughput limitations
+    \item Continued G1 refinements (e.g., improved remembered set handling, better region sizing heuristics)
+    \item Shenandoah maturation and optimization
+\end{itemize}
+
+\textbf{Impact}: Performance recommendations based on JDK 8--11 data may be obsolete, potentially leading to suboptimal GC selection in current deployments.
+
+\textbf{Why this matters for web applications}: Web services have stringent latency requirements (p99 < 100ms common). Even marginal improvements in recent JDK versions could shift optimal GC choice.
+
+\subsection{Application domain gap --- Missing web application context}
+\label{subsec:gap-domain}
+
+\textbf{Issue}: Research focuses on DaCapo (computational workloads) or specialized systems (Cassandra database), lacking systematic evaluation of typical web applications with:
+\begin{itemize}
+    \item Request-scoped object lifecycles (objects born at request start, die at request completion)
+    \item ORM-generated object graphs (JPA/Hibernate proxies, lazy-loaded associations)
+    \item Connection pooling and prepared statement caching
+    \item Multi-tier caching (L1/L2 entity cache, application-level cache)
+    \item DTO creation and JSON serialization patterns
+    \item Async request processing with CompletableFuture/reactive streams
+\end{itemize}
+
+\textbf{Why this matters}: Web applications constitute the majority of Java deployments, yet their memory patterns differ fundamentally from studied benchmarks. Request-scoped lifecycles align closely with generational hypothesis, but ORM and caching introduce intermediate-lived objects challenging this assumption. \textbf{Without workload-representative evaluation, existing findings may not generalize}, risking misguided configuration choices in production.
+
+\textbf{Specific unknowns}:
+\begin{enumerate}
+    \item How does request concurrency level affect GC behavior?
+    \item What is optimal Young/Old ratio for request-scoped patterns?
+    \item How do ORM-generated graphs impact promotion rates?
+    \item What is GC sensitivity to cache size and eviction policy?
+\end{enumerate}
+
+\subsection{Metrics gap --- Insufficient tail latency focus}
+\label{subsec:gap-metrics}
+
+\textbf{Issue}: Studies emphasize mean/max pause times and throughput, with limited attention to tail latency percentiles (p95, p99, p999) and SLA compliance metrics critical for production services.
+
+\textbf{Why this matters for web applications}:
+\begin{itemize}
+    \item SLAs typically specify percentile targets ("99\% of requests < 100ms")
+    \item User experience research shows abandonment increases sharply above 200ms
+    \item Even rare multi-second GC pauses breach p999 targets, triggering financial penalties
+    \item Tail latency determines capacity planning (must provision for worst-case, not average)
+\end{itemize}
+
+Carpen-Amarie et al. \cite{carpen2015performance} note this gap, observing that "even low-latency GCs can seriously impact response time," but do not systematically quantify percentile distributions or SLA violation rates.
+
+\textbf{Unaddressed questions}:
+\begin{enumerate}
+    \item What is GC-induced p99/p999 latency for each collector under sustained load?
+    \item How does percentile target (p95 vs p99 vs p999) affect optimal GC choice?
+    \item What is trade-off between tightening pause time targets and throughput degradation?
+\end{enumerate}
+\subsection{Modern collectors gap --- ZGC/Shenandoah underexplored}
+\label{subsec:gap-modern}
+\textbf{Issue}: ZGC and Shenandoah receive limited independent empirical evaluation. Existing sources are primarily:
+\begin{itemize}
+\item Architectural descriptions (JEPs, Oracle docs)
+\item Vendor-conducted studies with limited detail
+\item Initial research \cite{flood2016shenandoah} predating significant maturation
+\end{itemize}
+\textbf{Generational ZGC (JDK 21)}: Represents major architectural evolution, yet \textbf{no published academic evaluation exists}. This is particularly concerning given that it addresses original ZGC's primary weakness (throughput) while maintaining latency benefits.
+\textbf{Why this matters}: These collectors target exactly the low-latency requirements of modern web services, yet practitioners lack independent, workload-relevant performance data to inform adoption decisions. The 5--15% throughput penalty and 20% memory overhead require careful cost-benefit analysis absent in current literature.
+\subsection{Configuration guidance gap --- Lack of actionable recommendations}
+\label{subsec:gap-guidance}
+\textbf{Issue}: Research provides comparative data but lacks decision frameworks translating findings into configuration choices. Practitioners face questions like:
+\begin{itemize}
+\item "I have 4GB heap, p99 < 100ms target, 1000 RPS load --- which GC and settings?"
+\item "When is ZGC's memory overhead justified vs G1?"
+\item "How to migrate from Parallel to G1 in production without disruption?"
+\end{itemize}
+Existing work rarely addresses these practical concerns, limiting real-world impact.
+\textbf{Why this matters for enterprise deployments}: Configuration decisions affect SLA compliance, infrastructure costs, and operational stability. Without evidence-based guidelines, teams resort to trial-and-error or cargo-cult practices, risking performance issues or unnecessary resource expenditure.
+\subsection{Containerization gap --- Missing cloud-native context}
+\label{subsec:gap-container}
+\textbf{Issue}: All reviewed studies use bare-metal or VM deployments, ignoring containerized realities:
+\begin{itemize}
+\item Cgroup memory limits and OOM-kill behavior
+\item CPU throttling affecting GC thread scheduling
+\item JVM ergonomics misdetecting available resources
+\item Rapid scaling events and cold-start performance
+\end{itemize}
+\textbf{Why this matters}: Kubernetes deployments dominate modern enterprise Java. Container constraints fundamentally change performance landscape --- misconfigured heap sizing triggers OOM kills, while conservative sizing wastes resources multiplied across hundreds of pods.
+\section{Research positioning and contribution}
+\label{sec:positioning}
+This thesis addresses identified gaps through:
+\begin{enumerate}
+\item \textbf{Contemporary JDK evaluation}: Testing JDK 17 LTS and JDK 21 LTS, including Generational ZGC
+\item \textbf{Web application representativeness}: Custom Spring Boot application with REST API, JPA/Hibernate, connection pooling, caching --- capturing real deployment patterns
+
+\item \textbf{Comprehensive metrics}: Emphasis on p95/p99/p999 tail latency, SLA compliance rates, latency-throughput-memory trade-off quantification
+
+\item \textbf{Modern collector coverage}: Systematic comparison of all production-ready collectors including ZGC (standard and Generational) and Shenandoah
+
+\item \textbf{Decision support framework}: Evidence-based GC selection flowcharts, configuration templates for common scenarios, production migration strategies
+
+\item \textbf{Methodological rigor}: Statistical analysis with confidence intervals, controlled experimental conditions, replicable procedures
+\end{enumerate}
+By addressing these gaps, this work bridges academic GC research and practitioner needs, providing actionable intelligence for optimizing Java web service performance in contemporary deployment environments.

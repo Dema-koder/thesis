@@ -1,0 +1,42 @@
+\chapter*{Conclusion}
+\addcontentsline{toc}{chapter}{Conclusion}
+\chaptermark{Conclusion}
+
+This thesis set out to systematically evaluate the performance of five production-ready Java garbage collectors --- Serial GC, Parallel GC, G1 GC, ZGC, and Shenandoah GC --- in the context of Spring Boot web applications, and to develop evidence-based recommendations for GC selection and configuration. The work addressed six research gaps identified in the literature review: outdated JDK coverage, missing web application context, insufficient tail latency focus, underexplored modern collectors, lack of actionable configuration guidance, and absence of cloud-native deployment context.
+
+\section*{Summary of Key Findings}
+
+The experimental evaluation produced six principal findings that collectively advance the state of knowledge on GC performance for web applications:
+
+\textbf{1. No single GC is universally optimal for Spring Boot web applications.} The optimal collector depends on workload type, heap size, and concurrency level. Parallel GC leads under write-heavy transactional patterns (p99 6\,ms), ZGC leads under read-heavy cached access (p99 11\,ms), and Shenandoah GC provides the most consistent performance under high concurrency (p99 17\,ms) and bursty traffic (p99 8--9\,ms stable across load phases). This finding directly contradicts the common practice of selecting a GC based solely on its architectural category (stop-the-world vs.\ concurrent) without regard to workload characteristics.
+
+\textbf{2. Application p99 latency and GC pause duration are decoupled at moderate load.} Across the read-heavy baseline scenario, collectors whose maximum GC pauses span three orders of magnitude (0.05\,ms for ZGC to 98\,ms for Serial GC) produce nearly identical application p99 latency (11--13\,ms). This decoupling occurs because database I/O and connection pool dynamics dominate response time at sub-production request rates. The p999 percentile is a more sensitive early indicator of GC influence: Serial GC's 98\,ms pauses manifest as p999 elevation (21\,ms vs.\ 16\,ms for ZGC) before affecting p99, signaling that GC differences will amplify at higher load.
+
+\textbf{3. Write-heavy workloads invert the ZGC/Parallel GC ranking.} Under 80\% POST request composition, Parallel GC achieves p99 6\,ms while ZGC degrades to 12\,ms --- a reversal of their read-heavy rankings. The mechanism is ZGC's concurrent load barrier overhead, which scales with object allocation rate and penalizes the high allocation density of transactional write operations. This finding has direct practical implications for transaction-intensive microservices that have adopted ZGC based on read-oriented benchmarks.
+
+\textbf{4. Shenandoah GC uniquely maintains p99 stability across burst traffic.} In the three-phase burst experiment, Shenandoah is the only collector maintaining constant p99 (8--9\,ms) across normal and burst phases, while all other collectors show elevated normal-phase latency due to JVM warm-up effects. This stability makes Shenandoah the preferred choice for services experiencing unpredictable traffic spikes, despite its lower steady-state throughput compared to G1 and ZGC.
+
+\textbf{5. ZGC's sub-millisecond pause guarantee is confirmed and heap-size independent.} Maximum GC pause duration for ZGC decreases from 0.07\,ms at 512\,MB to 0.03\,ms at 4\,GB, empirically confirming the theoretical O(1) pause time property with respect to heap size. This makes ZGC uniquely suitable for large-heap deployments ($\geq$4\,GB) where G1 GC pause durations grow to 35\,ms and Serial GC reaches 98\,ms.
+
+\textbf{6. Generational ZGC shows promise for write-heavy workloads.} In a preliminary evaluation, Generational ZGC achieves p99 6\,ms under write-heavy load --- matching Parallel GC --- while maintaining sub-millisecond GC pauses (0.07\,ms maximum). This suggests that Generational ZGC may eliminate the write-heavy trade-off that currently makes standard ZGC unsuitable for transactional services, though a controlled evaluation free of warm-up confounds remains outstanding.
+
+\section*{Practical Contributions}
+
+Beyond the empirical findings, this work delivers three directly applicable artefacts for practitioners:
+
+The \textbf{GC selection decision tree} (Figure~\ref{fig:decision-tree}) provides a structured, evidence-based procedure for choosing a garbage collector given deployment constraints (heap size, latency SLA) and workload characteristics (read vs.\ write ratio, concurrency level). Unlike existing vendor documentation, the decision tree is grounded in quantified experimental results from realistic web application workloads rather than synthetic benchmarks.
+
+The \textbf{per-collector JVM configuration templates} (Table~\ref{tab:jvm-flags}) provide ready-to-use flag sets for each collector, including container-specific considerations (\texttt{MaxRAMPercentage}, cgroup awareness) and GC logging configuration for production observability.
+
+The \textbf{migration playbooks} for three common GC transitions (Parallel$\rightarrow$G1, G1$\rightarrow$ZGC, G1$\rightarrow$Shenandoah) provide risk-managed procedures with heap sizing guidance, validation metrics, and rollback triggers, addressing the configuration guidance gap that forces engineering teams to rely on trial-and-error in production.
+
+\section*{Limitations and Future Work}
+
+The principal limitations of this study are its single-platform experimental environment (Apple M3 Pro, macOS), load intensity ceiling (approximately 400\,req/s), and single application scope. The Shenandoah results in particular should be validated on Linux server hardware before applying the high-concurrency and burst recommendations to production deployments.
+
+The most important direction for future work is a controlled head-to-head evaluation of standard ZGC and Generational ZGC under identical warm-up conditions at production-scale load (1000+ req/s), which would determine whether Generational ZGC can serve as a universal low-latency, high-throughput collector for both read-heavy and write-heavy Spring Boot applications. Additional high-value research directions include the interaction of GC behavior with JDK 21 virtual threads, containerized resource constraints, and long-duration heap fragmentation dynamics.
+
+\section*{Concluding Remarks}
+
+The results of this work demonstrate that GC selection for Spring Boot web applications is a workload-sensitive engineering decision that cannot be resolved by architectural intuition alone. The convergence of application latency across collectors at moderate load creates a misleading impression that GC choice is inconsequential --- an impression that breaks down as request rate, heap size, or concurrency increase beyond the tested regime. The decision framework, configuration templates, and migration playbooks provided in this thesis equip engineering teams with the quantitative foundation needed to make informed GC choices and to anticipate how those choices will behave as their services scale.
+

@@ -1,0 +1,133 @@
+\chapter{Introduction}
+\label{chap:intro}
+\chaptermark{Introduction}
+
+\section{Relevance of the study}
+\label{sec:relevance}
+
+Java continues to be one of the main tools for developing enterprise applications and web services. According to the Stack Overflow Developer Survey 2025 \cite{stackoverflow2025survey}, Java ranks 7th among programming languages with 30.3\% of professional developers using it, and the Spring Framework has become the de facto standard in enterprise development. The growing adoption of microservices architectures and cloud-native deployments has fundamentally changed the performance requirements for Java applications: where traditional monoliths could tolerate occasional multi-second pauses, modern distributed systems require consistent sub-100ms response times to maintain user experience and inter-service communication \cite{carpen2015performance}.
+
+The shift toward microservices and containerization has made garbage collection (GC) behavior increasingly critical. In a distributed system, a single service experiencing a 3-second GC pause can cascade into timeout failures across multiple dependent services, potentially violating Service Level Agreements (SLAs) and impacting revenue. Cloud deployments amplify these concerns: inefficient memory management translates directly to infrastructure costs, while unpredictable latency spikes can trigger auto-scaling events that further increase operational expenses.
+
+One of the key features of Java is automatic Garbage Collection (GC), which saves programmers from having to manually manage memory. However, this convenience comes at a price: the operation of the garbage collector directly affects application performance through multiple dimensions --- pause time duration, throughput reduction during concurrent phases, CPU overhead, and memory footprint \cite{carpen2015performance, pufek2019analysis}.
+
+Research demonstrates \cite{carpen2015performance, pufek2019analysis} that different garbage collectors exhibit fundamentally different performance characteristics on multicore systems. For example, Parallel GC, the default choice in JDK 8, maximizes throughput by using multiple threads but can "freeze" applications for several seconds during full collections --- acceptable for batch processing but catastrophic for user-facing services. Conversely, G1 GC (default since JDK 9) targets predictable pause times through incremental collection, though sometimes at the cost of 10--15\% throughput reduction and higher CPU utilization during concurrent phases.
+
+The challenge intensifies in modern deployment scenarios:
+
+\begin{enumerate}
+    \item \textbf{Tail latency dominates user experience}. While average response time might be 50ms, p99 latency of 500ms (often caused by GC pauses) determines perceived quality. Studies show users abandon transactions when delays exceed 200ms \cite{carpen2015performance}
+    
+    \item \textbf{Resource efficiency directly impacts operational costs}. In Kubernetes deployments, conservative memory allocation (e.g., 2GB heap when 1.5GB suffices) multiplied across hundreds of pods represents substantial waste. Conversely, undersized heaps trigger excessive GC overhead, degrading performance
+    
+    \item \textbf{SLA compliance requires predictability}. Modern service contracts typically specify p99 or p999 latency targets (e.g., "99.9\% of requests under 100ms"). Even rare multi-second GC pauses can breach these agreements, triggering financial penalties
+    
+    \item \textbf{Distributed system resilience depends on consistent performance}. A service that occasionally pauses for 3+ seconds may be misidentified as failed by health checks, causing unnecessary failovers and cluster instability
+\end{enumerate}
+
+The problem is that most existing research \cite{carpen2015performance, pufek2019analysis, grgic2018comparison} focuses either on synthetic benchmarks like DaCapo suite (which emphasize computational workloads) or specialized systems like Apache Cassandra (a database with atypical memory patterns). However, typical Spring Boot web applications --- characterized by request-scoped object lifecycles, ORM-generated object graphs, connection pooling, and multi-tier caching --- exhibit distinctly different allocation and retention patterns. Understanding GC behavior in this dominant use case remains inadequately addressed in academic literature, despite representing the majority of production Java deployments.
+
+\section{Purpose and objectives of the study}
+\label{sec:objectives}
+
+\textbf{Purpose of the work} --- to systematically evaluate how major Java garbage collectors (Serial GC, Parallel GC, G1 GC, ZGC, Shenandoah GC) perform in realistic web application workloads, and to develop evidence-based recommendations for GC selection and configuration that balance latency, throughput, and resource efficiency requirements.
+
+To achieve this goal, it is necessary to solve the following \textbf{tasks}:
+
+\begin{enumerate}
+    \item Conduct a systematic literature review of GC mechanisms, architectures, and performance characteristics across JDK versions 8--21, critically analyzing methodological limitations in existing studies
+    
+    \item Design a testing methodology that captures web application characteristics:
+    \begin{itemize}
+        \item Realistic request patterns (CRUD operations with varying complexity, read-heavy vs write-heavy workloads, traffic bursts)
+        \item Typical persistence layer interactions (JPA/Hibernate with connection pooling, query result caching)
+        \item Request-scoped object lifecycles and DTO serialization patterns
+        \item Concurrent request handling with thread pool dynamics
+    \end{itemize}
+    
+    \item Implement a representative Spring Boot test application incorporating:
+    \begin{itemize}
+        \item REST API with endpoints of varying computational complexity
+        \item JPA/Hibernate integration with realistic entity relationships
+        \item Multi-level caching (L1/L2 Hibernate cache, application-level cache)
+        \item Asynchronous processing patterns common in modern web services
+    \end{itemize}
+    
+    \item Execute comprehensive experiments measuring:
+    \begin{itemize}
+        \item \textbf{Latency metrics}: Mean, median, p95, p99, p999 response times and their distribution under varying loads
+        \item \textbf{Throughput}: Requests per second at different percentile targets
+        \item \textbf{GC behavior}: Pause frequency, duration, types (Young/Mixed/Full), and timing correlation with latency spikes
+        \item \textbf{Resource utilization}: Heap usage patterns, allocation rate, CPU consumption during GC, memory overhead
+        \item \textbf{SLA compliance}: Percentage of requests meeting specified latency thresholds
+    \end{itemize}
+    
+    \item Analyze collected data to identify:
+    \begin{itemize}
+        \item GC performance trends across heap sizes (1GB--8GB range typical for containerized services)
+        \item Sensitivity to Young/Old generation ratios and region sizing
+        \item Workload-specific performance characteristics (read-heavy, write-heavy, mixed)
+        \item Trade-offs between latency, throughput, and memory footprint
+    \end{itemize}
+    
+    \item Synthesize findings into actionable recommendations:
+    \begin{itemize}
+        \item Decision tree for GC selection based on latency requirements, throughput needs, and resource constraints
+        \item Configuration guidelines for each GC (heap sizing, generation ratios, pause time goals)
+        \item Migration strategies for transitioning between GCs in production environments
+        \item Monitoring and tuning practices for operational teams
+    \end{itemize}
+\end{enumerate}
+
+\section{Scientific novelty}
+\label{sec:novelty}
+
+The scientific novelty of this work consists of several aspects:
+
+\begin{enumerate}
+    \item \textbf{Application-contextualized evaluation}. First systematic comparison of modern GC implementations (including ZGC and Shenandoah) specifically on Spring Boot web applications, addressing the gap between academic benchmarks and production deployment patterns. Unlike DaCapo suite's computational focus, this work captures HTTP request handling, ORM persistence, and caching behaviors characteristic of web services
+    
+    \item \textbf{Comprehensive multi-dimensional metrics}. Beyond traditional throughput and pause time measurements, this study systematically evaluates:
+    \begin{itemize}
+        \item Tail latency distribution (p95, p99, p999) under sustained load
+        \item SLA compliance rates at various percentile targets
+        \item GC-induced latency correlation with request patterns
+        \item Memory efficiency (heap utilization vs allocation rate)
+        \item CPU overhead during concurrent GC phases
+        \item Trade-off relationships between these dimensions
+    \end{itemize}
+    
+    \item \textbf{Contemporary JVM coverage}. Evaluation spans current LTS releases (JDK 17, 21) including recent innovations: Generational ZGC (JDK 21), mature G1 with Parallel Full GC, and production-ready Shenandoah. Existing literature predominantly covers JDK 8--11, missing significant algorithmic improvements
+    
+    \item \textbf{Production-oriented practical framework}. Results are directly translated into decision support tools: GC selection flowcharts based on quantified requirements, configuration templates for common scenarios, and migration playbooks validated against real-world constraints
+\end{enumerate}
+
+\section{Practical significance}
+\label{sec:significance}
+
+The results of this work provide immediate value to multiple stakeholder groups:
+
+\begin{enumerate}
+    \item \textbf{Software engineers and architects} gain understanding of how GC choices impact application behavior, enabling informed design decisions rather than relying on defaults or anecdotal advice. Quantified trade-offs support capacity planning and performance budgeting
+    
+    \item \textbf{DevOps and SRE teams} receive concrete JVM configuration guidelines for containerized deployments (Docker, Kubernetes), addressing common pitfalls like incorrect heap sizing for cgroup limits or inappropriate GC selection for low-latency requirements. Migration strategies reduce risk when upgrading JDK versions or changing GC algorithms in production
+    
+    \item \textbf{Technical leadership} obtains data-driven insights for infrastructure decisions: cost-benefit analysis of resource allocation, SLA feasibility assessment, and technology stack evaluation. Understanding GC-induced latency helps set realistic performance targets
+    
+    \item \textbf{Educational purposes} --- this work serves as comprehensive reference material for JVM tuning courses and internal training programs, bridging theory and practice with real-world measurements and lessons learned
+\end{enumerate}
+
+\section{Structure of the work}
+\label{sec:structure}
+
+The work is organized as follows:
+
+\textbf{Chapter~\ref{chap:lr}} provides a critical systematic literature review. Beyond summarizing existing work, it analyzes methodological strengths and limitations of prior studies, identifies gaps in knowledge, and positions this research within the broader landscape of GC performance evaluation.
+
+\textbf{Chapter~\ref{chap:met}} details the research methodology: test application architecture and justification, workload scenario design, measurement instrumentation, statistical analysis approach, and validity considerations.
+
+\textbf{Chapter~\ref{chap:impl}} presents experimental results with detailed analysis: performance comparisons across GCs, sensitivity to configuration parameters, workload-specific findings, and observed anomalies with explanations.
+
+\textbf{Chapter~\ref{chap:eval}} synthesizes findings into practical recommendations, discusses study limitations and threats to validity, and proposes directions for future research.
+
+The \textbf{Conclusion} summarizes key contributions and restates main findings.
