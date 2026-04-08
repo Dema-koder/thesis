@@ -7,7 +7,7 @@ This chapter presents the results of comprehensive benchmarking experiments cond
 \section{Experimental Setup Summary}
 \label{sec:setup-summary}
 
-The test application is a Spring Boot~3.2 REST service with JPA/Hibernate persistence backed by PostgreSQL~16, Caffeine application-level cache, and HikariCP connection pool (20 connections). Four workload scenarios were designed to capture distinct production patterns:
+The test application is a Spring Boot~3.2 REST service with JPA/Hibernate persistence backed by PostgreSQL~16, Caffeine application-level cache, and HikariCP connection pool (20 connections). The complete source code of the benchmark application, JMeter test plans, GC log files, and Python analysis scripts are publicly available in the accompanying  repository.\footnote{\url{https://github.com/Dema-koder/gc-benchmark}} Four workload scenarios were designed to capture distinct production patterns:
 
 \begin{enumerate}
     \item \textbf{Read-Heavy} (20 threads, 80\% GET / 20\% POST, 300\,s) --- baseline mixed workload dominated by cached product lookups and JOIN FETCH order queries
