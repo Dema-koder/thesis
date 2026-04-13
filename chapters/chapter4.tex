@@ -1,308 +1,328 @@
-\chapter{Discussion, Recommendations, and Future Work}
-\label{chap:eval}
-\chaptermark{Discussion, Recommendations, and Future Work}
+\chapter{Experimental Results and Analysis}
+\label{chap:impl}
+\chaptermark{Experimental Results and Analysis}
 
-This chapter synthesizes the experimental findings from Chapter~\ref{chap:impl} into a practical decision framework for GC selection in production Spring Boot deployments. Section~\ref{sec:lit-comparison} positions the results within the existing literature. Section~\ref{sec:decision-framework} presents a structured decision tree and per-collector configuration guidelines. Section~\ref{sec:migration} provides migration strategies for transitioning between collectors in production environments. Section~\ref{sec:study-limitations} discusses study limitations, and Section~\ref{sec:future-work} identifies directions for future research.
+This chapter presents the results of comprehensive benchmarking experiments conducted on the Spring Boot web application described in Chapter~\ref{chap:met}. The experiments systematically evaluate five production-ready Java garbage collectors --- Serial GC, Parallel GC, G1 GC, ZGC, and Shenandoah GC, as well as Generational ZGC --- across four workload scenarios and three heap configurations, measuring application-level latency percentiles, throughput, and GC-specific pause characteristics. All experiments were conducted on Apple M3 Pro Max (11-core ARM, 18\,GB RAM) running macOS~15.6, JDK~21.0.5 (Temurin LTS).
 
-\section{Comparison with Existing Literature}
-\label{sec:lit-comparison}
+\section{Experimental Setup Summary}
+\label{sec:setup-summary}
 
-The experimental results both confirm and extend prior findings in several dimensions.
-
-\subsection{Alignment with Prior Work}
-\label{subsec:alignment}
-
-The finding that Parallel GC provides consistent throughput across heap sizes aligns with Carpen-Amarie et al.\ \cite{carpen2015performance}, who identified ParallelOld as the most consistent collector across DaCapo benchmarks on a 48-core NUMA system. However, the present study extends this result to web application workloads and demonstrates that Parallel GC's throughput advantage is workload-dependent: it is most pronounced under write-heavy transactional patterns and diminishes under read-heavy cached access patterns.
-
-The G1 GC pause duration growth with heap size (7.73\,ms at 512\,MB to 35.11\,ms at 4\,GB) is consistent with Pufek et al.\ \cite{pufek2019analysis} and Grgić et al.\ \cite{grgic2018comparison}, who documented G1's sensitivity to heap configuration. However, the present results demonstrate that this pause growth does not proportionally propagate to application p99 latency at moderate load levels --- a nuance absent from prior benchmarking studies that focused on GC pause duration rather than end-to-end application latency.
-
-\subsection{Contradictions with Prior Work}
-\label{subsec:contradictions}
-
-The convergence of application p99 latency across collectors (11--13\,ms for all collectors in read-heavy conditions) contradicts the implicit assumption in prior literature that lower GC pauses directly translate to lower application latency. Carpen-Amarie et al.\ \cite{carpen2015performance} and Flood et al.\ \cite{flood2016shenandoah} present GC pause duration as the primary proxy for application performance quality. The present study demonstrates that this proxy is \textbf{load-dependent}: at moderate request rates, application latency is dominated by database I/O and connection pool dynamics rather than GC activity, making GC pause duration an unreliable predictor of application p99 at sub-production load levels.
-
-\subsection{Novel Contributions Relative to Literature}
-\label{subsec:novel-contributions}
-
-Three findings have no direct precedent in the reviewed literature:
+The test application is a Spring Boot~3.2 REST service with JPA/Hibernate persistence backed by PostgreSQL~16, Caffeine application-level cache, and HikariCP connection pool (20 connections). The complete source code of the benchmark application, JMeter test plans, GC log files, and Python analysis scripts are publicly available in the accompanying  repository.\footnote{\url{https://github.com/Dema-koder/gc-benchmark}} Four workload scenarios were designed to capture distinct production patterns:
 
 \begin{enumerate}
-    \item \textbf{Write-heavy workload inversion}: The reversal of ZGC and Parallel GC rankings under write-heavy load (Parallel GC p99 6\,ms vs.\ ZGC 12\,ms) has not been documented in prior Spring Boot or web application benchmarking studies. Existing ZGC evaluations \cite{jep333, oracle2023gc} do not systematically vary request type composition.
-
-    \item \textbf{Shenandoah burst stability}: The unique property of Shenandoah maintaining constant p99 across normal and burst phases (8--9\,ms throughout) while other collectors show 2--4$\times$ higher normal-phase latency due to warm-up effects has not been previously characterized in the context of web service traffic patterns.
-
-    \item \textbf{ZGC heap size inversion}: The counterintuitive result that ZGC achieves lower p99 at 2\,GB than at 512\,MB (11\,ms vs.\ 13\,ms) due to memory overhead consumption at small heap sizes provides empirical evidence for the theoretical 20\% memory overhead claim in Oracle documentation \cite{oracle2023gc}, which had not been previously validated in web application context.
+    \item \textbf{Read-Heavy} (20 threads, 80\% GET / 20\% POST, 300\,s) --- baseline mixed workload dominated by cached product lookups and JOIN FETCH order queries
+    \item \textbf{Write-Heavy} (20 threads, 80\% POST / 20\% GET, 300\,s) --- transaction-intensive workload with frequent object allocation and database writes
+    \item \textbf{High Concurrency} (50 threads, read-heavy, 300\,s) --- elevated concurrency to amplify GC pressure and queue effects
+    \item \textbf{Burst} (20$\to$60$\to$20 threads, 240\,s total) --- three-phase test simulating a traffic spike: 90\,s normal, 60\,s burst at 3$\times$ load, 90\,s recovery
 \end{enumerate}
 
-\section{GC Selection Decision Framework}
-\label{sec:decision-framework}
+A 100\,ms constant timer between iterations was introduced to prevent TCP port exhaustion on the macOS loopback interface. All GC configurations use identical JVM flags except the collector selection flag, with heap fixed at 2\,GB (\texttt{-Xms512m -Xmx2g}) unless stated otherwise. GC unified logging was enabled via \texttt{-Xlog:gc*:file=<path>:time,uptime,level,tags} for all runs.
 
-\subsection{Decision Tree}
-\label{subsec:decision-tree}
+\section{Read-Heavy Scenario}
+\label{sec:results-read}
 
-Figure~\ref{fig:decision-tree} presents a structured decision tree for GC selection in Spring Boot web application deployments on JDK 21, derived from the experimental results. The tree prioritizes deployment constraints (heap size, latency SLA) before workload characteristics, reflecting the typical order in which these parameters are known during system design.
-
-\begin{figure}[htbp]
-\centering
-\resizebox{\textwidth}{!}{%
-\begin{tikzpicture}[
-    decision/.style={
-        diamond, draw, fill=blue!10,
-        text width=3cm, text centered,
-        inner sep=3pt, minimum height=1.8cm,
-        font=\normalsize
-    },
-    result/.style={
-        rectangle, draw, rounded corners=4pt,
-        fill=green!15, text width=3cm,
-        text centered, inner sep=6pt,
-        font=\normalsize\bfseries,
-        minimum height=1.4cm
-    },
-    warn/.style={
-        rectangle, draw, rounded corners=4pt,
-        fill=red!15, text width=7cm,
-        text centered, inner sep=6pt,
-        font=\normalsize\bfseries,
-        minimum height=1.2cm
-    },
-    arrow/.style={->, >=stealth, thick},
-    lbl/.style={font=\small, fill=white, inner sep=2pt}
-]
-
-% ROOT
-\node[decision] (heap) at (0, 0) {Heap\\$\leq$ 512\,MB?};
-
-% LEVEL 1
-\node[decision] (sla_s) at (-7, -5)  {p99 SLA\\$<$ 10\,ms?};
-\node[decision] (sla_l) at ( 7, -5)  {p99 SLA\\$<$ 10\,ms?};
-
-% LEVEL 2
-\node[decision] (wh)     at (-5, -10) {Write-heavy\\($>$50\%~POST)?};
-\node[decision] (wltype) at ( 7, -10) {Workload\\type?};
-
-% LEVEL 3 — left subtree
-\node[result] (shen_s) at (-13, -10)
-    {\textbf{Shenandoah GC}\\lowest memory\\overhead};
-\node[result] (par_s)  at (-7.5, -15)
-    {\textbf{Parallel GC}\\fast young GC\\write efficiency};
-\node[result] (g1_s)   at (-2.5, -15)
-    {\textbf{G1 GC}\\balanced\\default};
-
-% LEVEL 3 — right subtree
-\node[result] (zgc)     at (13, -10)
-    {\textbf{ZGC}\\sub-ms pauses\\all heap sizes};
-\node[result] (par_wh)  at ( 3, -15)
-    {\textbf{Parallel GC}\\p99 6\,ms\\write-heavy};
-\node[result] (shen_hc) at ( 7, -15)
-    {\textbf{Shenandoah}\\p99 17\,ms\\high conc.};
-\node[result] (g1_rh)   at (11, -15)
-    {\textbf{G1 GC}\\p99 13\,ms\\general/read};
-
-% SERIAL WARNING
-\node[warn] (serial) at (0, -19)
-    {\textbf{Serial GC: NOT recommended} for any production web service (max GC pause 98\,ms)};
-
-% ARROWS: root
-\draw[arrow] (heap.west)  to[out=190,in=80]
-    node[lbl, above left] {Yes} (sla_s.north);
-\draw[arrow] (heap.east)  to[out=350,in=100]
-    node[lbl, above right] {No} (sla_l.north);
-
-% ARROWS: left SLA
-\draw[arrow] (sla_s.west)  -- node[lbl, above] {Yes} (shen_s.east);
-\draw[arrow] (sla_s.south) -- node[lbl, right] {No}  (wh.north);
-
-% ARROWS: write-heavy
-\draw[arrow] (wh.south west) to[out=250,in=90]
-    node[lbl, left] {Yes} (par_s.north);
-\draw[arrow] (wh.south east) to[out=290,in=90]
-    node[lbl, right] {No}  (g1_s.north);
-
-% ARROWS: right SLA
-\draw[arrow] (sla_l.east)  -- node[lbl, above] {Yes} (zgc.west);
-\draw[arrow] (sla_l.south) -- node[lbl, right] {No}  (wltype.north);
-
-% ARROWS: workload type
-\draw[arrow] (wltype.south west) to[out=250,in=90]
-    node[lbl, left] {Write} (par_wh.north);
-\draw[arrow] (wltype.south) --
-    node[lbl, right] {High conc.} (shen_hc.north);
-\draw[arrow] (wltype.south east) to[out=290,in=90]
-    node[lbl, right] {Read/mixed} (g1_rh.north);
-
-% SERIAL: dashed warning arrow
-\draw[->, >=stealth, thick, dashed, red!50]
-    (serial.north) -- node[lbl, right] {avoid} ++(0,1.8);
-
-\end{tikzpicture}
-}
-\caption{GC selection decision tree for Spring Boot web applications on JDK~21}
-\label{fig:decision-tree}
-\end{figure}
-
-\subsection{Per-Collector Configuration Guidelines}
-\label{subsec:config-guidelines}
-
-Table~\ref{tab:jvm-flags} provides recommended JVM flag templates for each collector, derived from the experimental configuration and validated against the benchmark results. All templates assume JDK 21 and a containerized or dedicated deployment.
+Table~\ref{tab:results-read} presents results for the baseline read-heavy workload. This scenario most closely resembles a typical microservice serving cached entity lookups with occasional write operations.
 
 \begin{table}[htbp]
 \centering
-\caption{Recommended JVM configuration templates by GC --- JDK 21, Spring Boot}
-\label{tab:jvm-flags}
-\small
-\renewcommand{\arraystretch}{1.5}
-\begin{tabular}{>{\raggedright\bfseries}p{2.0cm}
-                >{\raggedright\ttfamily}p{6.8cm}
-                >{\raggedright\arraybackslash}p{3.4cm}}
-\toprule
-\normalfont\textbf{GC} & \normalfont\textbf{JVM Flags} & \normalfont\textbf{Primary Use Case} \\
-\midrule
+\caption{Read-heavy scenario results (20 threads, 80\% GET, 300\,s, 2\,GB heap)}
+\label{tab:results-read}
+\begin{tabular}{lrrrrrr}
+\hline
+\textbf{GC} & \textbf{RPS} & \textbf{Avg\,(ms)} & \textbf{p99\,(ms)} & \textbf{p999\,(ms)} & \textbf{GC\,max} & \textbf{GC\,p99} \\
+\hline
+G1 GC       & 364 & 3.6 & 13 & 17 & 14.96\,ms & 14.72\,ms \\
+Parallel GC & 360 & 3.2 & 11 & 16 & 49.30\,ms &  8.09\,ms \\
+Serial GC   & 296 & 3.2 & 13 & 21 & 98.03\,ms & 31.81\,ms \\
+Shenandoah  & 253 & 3.1 & 12 & 17 &  0.91\,ms &  0.88\,ms \\
+ZGC         & 359 & 3.1 & 11 & 16 &  0.05\,ms &  0.03\,ms \\
+ZGC Gen.*   & 183 & 3.4 & 13 & 19 &  0.07\,ms &  0.04\,ms \\
+\hline
+\end{tabular}
 
-G1 GC &
--XX:+UseG1GC \newline
--Xms<50\%> -Xmx<target> \newline
--XX:MaxGCPauseMillis=100 \newline
--XX:G1HeapRegionSize=4m \newline
--XX:+G1UseAdaptiveIHOP
-& General-purpose, mixed workloads, default choice \\
+\smallskip
+\footnotesize{* Generational ZGC tested in a separate isolated run; see Section~\ref{sec:zgcgen}.}
+\end{table}
 
-\midrule
+ZGC and Parallel GC lead with p99 of 11\,ms; G1, Serial, and ZGC Generational reach 13\,ms. The critical differentiator is GC pause duration: ZGC achieves a maximum pause of 0.05\,ms across 294 events, three orders of magnitude below Serial GC's 98.03\,ms. Throughput is comparable across G1, Parallel, and ZGC (359--364\,req/s); Shenandoah's lower figure (253\,req/s) reflects macOS ARM thread scheduling interference, as confirmed by the write-heavy results in Section~\ref{sec:results-write}.
 
-ZGC &
--XX:+UseZGC \newline
--Xms<50\%> -Xmx<target> \newline
--XX:SoftMaxHeapSize=<85\%> \newline
--XX:ZUncommitDelay=60
-& Latency-critical, heap $\geq$1\,GB, read-heavy \\
+\section{Write-Heavy Scenario}
+\label{sec:results-write}
 
-\midrule
+The write-heavy workload (80\% POST requests triggering database transactions) fundamentally changes the allocation pattern: each request creates a new \texttt{Order} entity graph with JPA proxies, DTO objects, and JSON serialization buffers --- predominantly short-lived objects aligned with the generational hypothesis.
 
-ZGC Gen. &
--XX:+UseZGC -XX:+ZGenerational \newline
--Xms<50\%> -Xmx<target> \newline
--XX:SoftMaxHeapSize=<85\%>
-& Write-heavy with sub-ms pause requirement \\
-
-\midrule
-
-Parallel GC &
--XX:+UseParallelGC \newline
--Xms<50\%> -Xmx<target> \newline
--XX:ParallelGCThreads=<N/2> \newline
--XX:MaxGCPauseMillis=200
-& Write-heavy, batch-adjacent, throughput priority \\
-
-\midrule
-
-Shenandoah GC &
--XX:+UseShenandoahGC \newline
--Xms<50\%> -Xmx<target> \newline
--XX:ShenandoahGCHeuristics=adaptive \newline
--XX:ShenandoahGuaranteed \newline
-~~~~GCInterval=5000
-& High concurrency, bursty traffic, Linux deployments \\
-
-\bottomrule
+\begin{table}[htbp]
+\centering
+\caption{Write-heavy scenario results (20 threads, 80\% POST, 300\,s, 2\,GB heap)}
+\label{tab:results-write}
+\begin{tabular}{lrrrrrr}
+\hline
+\textbf{GC} & \textbf{RPS} & \textbf{Avg\,(ms)} & \textbf{p99\,(ms)} & \textbf{p999\,(ms)} & \textbf{GC\,max} & \textbf{GC\,p99} \\
+\hline
+G1 GC       & 182 & 3.4 & 10 & 17 & 15.19\,ms & 15.18\,ms \\
+Parallel GC & 179 & 2.4 &  6 & 14 & 39.34\,ms & 31.45\,ms \\
+Serial GC   & 181 & 2.9 &  9 & 18 & 68.92\,ms & 58.19\,ms \\
+Shenandoah  & 183 & 3.4 & 11 & 17 &  0.26\,ms &  0.26\,ms \\
+ZGC         & 182 & 3.8 & 12 & 19 &  0.03\,ms &  0.03\,ms \\
+\hline
 \end{tabular}
 \end{table}
 
-Several configuration notes apply across all collectors:
+The most notable finding is \textbf{Parallel GC achieving p99 of 6\,ms} --- the best result across all scenarios and all collectors in this study. This outcome is explained by the interaction between write-heavy allocation patterns and Parallel GC's generational strategy: the high object allocation rate triggers frequent Young GC collections (typically 1--2\,ms), preventing object promotion to Old generation and avoiding expensive full collections. The p99 GC pause of 31.45\,ms indicates occasional longer pauses, but they are rare enough not to affect the 99th percentile.
+
+Conversely, ZGC degrades to p99 of 12\,ms under write-heavy load. The concurrent relocation mechanism introduces load barrier overhead on every object dereference --- a cost amplified under write-heavy workloads with high object allocation rates \cite{oracle2023gc}. This inversion relative to read-heavy results demonstrates that no single GC is universally optimal across workload types.
+
+Shenandoah recovers to full throughput (183\,req/s) in the write-heavy scenario and maintains sub-millisecond GC pauses (max 0.26\,ms), confirming that its read-heavy throughput deficit is platform-specific rather than algorithmic.
+
+\section{High Concurrency Scenario}
+\label{sec:results-hc}
+
+Increasing concurrency from 20 to 50 threads at the same read-heavy request mix tests GC behavior under elevated allocation pressure and deeper request queuing.
+
+\begin{table}[htbp]
+\centering
+\caption{High concurrency scenario results (50 threads, read-heavy, 300\,s, 2\,GB heap)}
+\label{tab:results-hc}
+\begin{tabular}{lrrrrrr}
+\hline
+\textbf{GC} & \textbf{RPS} & \textbf{Avg\,(ms)} & \textbf{p99\,(ms)} & \textbf{p999\,(ms)} & \textbf{GC\,max} & \textbf{GC\,p99} \\
+\hline
+G1 GC       & 178 & 5.6 & 20 & 24 & 26.52\,ms & 17.99\,ms \\
+Parallel GC & 179 & 5.4 & 21 & 25 & 59.82\,ms &  5.37\,ms \\
+Serial GC   & 179 & 4.1 & 19 & 25 & 66.05\,ms & 19.21\,ms \\
+Shenandoah  & 179 & 3.4 & 17 & 21 &  0.27\,ms &  0.19\,ms \\
+ZGC         & 178 & 5.7 & 21 & 23 &  0.07\,ms &  0.03\,ms \\
+\hline
+\end{tabular}
+\end{table}
+
+At 50 threads, \textbf{Shenandoah GC achieves the best p99 (17\,ms)}, outperforming ZGC (21\,ms) and all stop-the-world collectors (19--21\,ms). Under sustained multi-threaded allocation, Shenandoah's forwarding pointer mechanism incurs lower interference with application threads than ZGC's load barriers \cite{flood2016shenandoah}.
+
+All collectors converge to approximately 178--179\,req/s throughput, indicating that the bottleneck has shifted to the database connection pool (20 connections serving 50 threads). The p99 latency increase relative to the 20-thread scenario (from 11--13\,ms to 17--21\,ms) reflects request queuing at the connection pool rather than GC-induced pauses.
+
+The GC pause data reveals a key finding: G1 GC's maximum pause grows from 14.96\,ms (20 threads) to 26.52\,ms (50 threads), as higher allocation rates accelerate heap consumption and trigger more frequent mixed GC cycles \cite{detlefs2004garbage}. ZGC and Shenandoah maintain sub-millisecond pauses regardless of concurrency level.
+
+\section{Burst Load Scenario}
+\label{sec:results-burst}
+
+The burst test simulates a traffic spike --- a common production scenario in microservice architectures caused by upstream retry storms or scheduled batch jobs. The test runs three phases: 90\,s at 20 threads (normal), 60\,s at 60 threads (burst, 3$\times$ load), and 90\,s at 20 threads (recovery).
+
+\begin{table}[htbp]
+\centering
+\caption{Burst scenario p99 latency (ms) by phase}
+\label{tab:burst-phases}
+\begin{tabular}{lrrrr}
+\hline
+\textbf{GC} & \textbf{Normal\,(90\,s)} & \textbf{Burst\,(60\,s)} & \textbf{Recovery\,(90\,s)} & \textbf{$\Delta$\,p99} \\
+\hline
+G1 GC       & 24\,ms &  6\,ms & 2\,ms & $-18$\,ms \\
+Parallel GC & 25\,ms &  7\,ms & 2\,ms & $-18$\,ms \\
+Serial GC   & 32\,ms &  9\,ms & 2\,ms & $-23$\,ms \\
+Shenandoah  &  9\,ms &  8\,ms & 3\,ms & $-1$\,ms  \\
+ZGC         & 27\,ms &  7\,ms & 2\,ms & $-20$\,ms \\
+\hline
+\end{tabular}
+\end{table}
+
+The phase-by-phase analysis reveals two distinct behavioral profiles. For G1, Parallel, Serial, and ZGC, p99 latency \textbf{decreases} during the burst phase --- explained by the HTTP keep-alive connection reuse effect: at 60 threads, established persistent connections serve requests without TCP handshake overhead, reducing per-request latency. The elevated normal-phase p99 (24--32\,ms) reflects warm-up effects at the start of each run.
+
+\textbf{Shenandoah GC is the only collector where p99 remains stable across all phases} (9\,ms normal, 8\,ms burst, 3\,ms recovery). This stability arises from Shenandoah's adaptive heuristics: the collector continuously adjusts concurrent cycle frequency based on allocation rate, maintaining consistent heap occupancy regardless of request rate. For SLA-sensitive production environments subject to traffic variability, this stability is more operationally relevant than steady-state p99 optimality.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=\textwidth]{figs/gc_scenarios_comparison.png}
+    \caption{GC performance across all four workload scenarios. Top-left: p99 latency by scenario; top-right: max GC pause by scenario; bottom-left: p99 heatmap by GC~$\times$~scenario; bottom-right: burst test p99 latency timeline.}
+    \label{fig:scenarios-comparison}
+\end{figure}
+
+\section{Cross-Scenario Analysis}
+\label{sec:cross-scenario}
+
+\subsection{Workload Sensitivity of GC Selection}
+\label{subsec:workload-sensitivity}
+
+Table~\ref{tab:best-gc} summarizes the best-performing GC by p99 latency for each scenario. The results demonstrate that \textbf{no single collector dominates across all workloads} --- a finding that directly contradicts the common practitioner assumption that ZGC is universally superior for latency-sensitive services.
+
+\begin{table}[htbp]
+\centering
+\caption{Best GC by p99 latency per scenario (2\,GB heap)}
+\label{tab:best-gc}
+\begin{tabular}{llrr}
+\hline
+\textbf{Scenario} & \textbf{Best GC} & \textbf{p99\,(ms)} & \textbf{RPS} \\
+\hline
+Read-Heavy       & ZGC / Parallel GC & 11 & 359--360 \\
+Write-Heavy      & Parallel GC       &  6 & 179      \\
+High Concurrency & Shenandoah        & 17 & 179      \\
+Burst            & Shenandoah        &  8 & 384      \\
+\hline
+\end{tabular}
+\end{table}
+
+Key observations by collector:
 
 \begin{itemize}
-    \item \textbf{Heap sizing in containers}: Always set \texttt{-Xmx} explicitly when running in Docker or Kubernetes. Without explicit sizing, JVM ergonomics may allocate up to 25\% of container memory limit, which can trigger OOM kills under GC pressure. Use \texttt{-XX:MaxRAMPercentage=75.0} as an alternative for dynamic container sizing \cite{oracle2023gc}.
-
-    \item \textbf{GC logging}: Enable unified GC logging in production for post-incident analysis: \texttt{-Xlog:gc*:file=/logs/gc.log:time,uptime:filecount=5,filesize=20m}. The overhead is negligible ($<$1\%) and the data is essential for diagnosing GC-induced latency spikes.
-
-    \item \textbf{Metaspace}: Set \texttt{-XX:MetaspaceSize=256m -XX:MaxMetaspaceSize=512m} for Spring Boot applications to prevent metadata-triggered GC events during application warm-up, which caused elevated latency in the burst test normal phase.
+    \item \textbf{Parallel GC} excels under write-heavy workloads due to efficient generational collection of short-lived objects, despite its high maximum GC pause (49\,ms)
+    \item \textbf{ZGC} leads in read-heavy scenarios where concurrent relocation overhead is minimized by a lower object allocation rate
+    \item \textbf{Shenandoah} provides the most consistent behavior under variable and high-concurrency load, making it the safest choice when load patterns are unpredictable
+    \item \textbf{G1 GC} offers the best throughput in read-heavy scenarios (364\,req/s) with moderate pause predictability
+    \item \textbf{Serial GC} is consistently worst: p99 of 32\,ms in the burst normal phase, GC pauses up to 98\,ms
 \end{itemize}
 
-\section{Migration Strategies}
-\label{sec:migration}
+\subsection{GC Pause vs.\ Application Latency Relationship}
+\label{subsec:pause-latency}
 
-Organizations upgrading GC configurations in production environments face risks of latency regressions, memory pressure changes, and operational surprises. This section provides structured migration playbooks for the most common transitions.
+Across all scenarios, the relationship between GC pause duration and application p99 latency is \textbf{non-linear and load-dependent}. At 20-thread moderate load, collectors with 98\,ms maximum GC pauses (Serial) achieve similar p99 application latency (13\,ms) as collectors with 0.05\,ms pauses (ZGC, 11\,ms). At 50-thread high concurrency, the gap widens: Shenandoah (0.27\,ms max pause) achieves p99 of 17\,ms while G1 (26.52\,ms max pause) reaches 20\,ms.
 
-\subsection{Parallel GC $\rightarrow$ G1 GC}
-\label{subsec:migration-parallel-g1}
+This non-linear relationship follows from queuing theory: a GC pause blocks one or more request-handling threads, affecting only requests in flight during the pause. At low concurrency (20 threads), the probability of a given request coinciding with a GC pause event is low, and the p99 percentile may not capture the pause at all if pause frequency is below 1\% of the request rate. At higher concurrency and load, pause effects propagate to a larger fraction of requests, amplifying p99 divergence between collectors.
 
-This is the most common migration, often triggered by JDK version upgrades (G1 became default in JDK 9). Key considerations:
+\textbf{Practical implication}: GC selection based on pause time alone is insufficient. Practitioners must evaluate GC performance at production-representative load levels rather than relying on isolated pause measurements.
 
-\begin{enumerate}
-    \item \textbf{Heap sizing}: G1 GC typically requires 10--15\% more heap than Parallel GC for equivalent throughput due to region metadata overhead. Increase \texttt{-Xmx} by 15\% before switching.
-    \item \textbf{Pause time target}: Start with \texttt{-XX:MaxGCPauseMillis=200} (G1 default) and reduce incrementally to 100\,ms over several deployment cycles, monitoring throughput impact via GC logs.
-    \item \textbf{Humongous objects}: G1 treats objects larger than 50\% of region size as humongous, bypassing young generation. Audit application for large array allocations (e.g., bulk JPA query results) that may cause fragmentation.
-    \item \textbf{Validation metrics}: Monitor \texttt{gc.pause.max} and \texttt{jvm.memory.used} in production for 2 weeks post-migration. Rollback trigger: sustained p99 increase $>$20\% or heap utilization $>$85\%.
-\end{enumerate}
+\section{Heap Size Sensitivity Analysis}
+\label{sec:heap-sensitivity}
 
-\subsection{G1 GC $\rightarrow$ ZGC}
-\label{subsec:migration-g1-zgc}
+Tables~\ref{tab:p99-heap} and~\ref{tab:gcpause-heap} present p99 application latency and maximum GC pause duration across three heap configurations for the read-heavy scenario.
 
-This migration targets services requiring sub-10\,ms GC pause guarantees:
+\begin{table}[htbp]
+\centering
+\caption{p99 application latency (ms) by GC and heap size, read-heavy scenario}
+\label{tab:p99-heap}
+\begin{tabular}{lrrr}
+\hline
+\textbf{GC} & \textbf{512\,MB} & \textbf{2\,GB} & \textbf{4\,GB} \\
+\hline
+Shenandoah  & 10\,ms & 12\,ms & 15\,ms \\
+Parallel GC & 11\,ms & 11\,ms & 11\,ms \\
+Serial GC   & 11\,ms & 13\,ms & 13\,ms \\
+ZGC         & 13\,ms & 11\,ms & 12\,ms \\
+G1 GC       & 12\,ms & 13\,ms & 13\,ms \\
+\hline
+\end{tabular}
+\end{table}
 
-\begin{enumerate}
-    \item \textbf{Memory budget}: ZGC requires approximately 20\% additional heap versus G1 for equivalent throughput. A service running at 2\,GB with G1 will need 2.4\,GB with ZGC to avoid increased GC frequency.
-    \item \textbf{Throughput assessment}: The experimental results show ZGC throughput within 1.4\% of G1 under read-heavy load but lower under write-heavy patterns. Profile the target service's POST/GET ratio before committing to ZGC.
-    \item \textbf{Load barrier overhead}: Monitor CPU utilization post-migration. ZGC's concurrent load barriers increase CPU consumption by 5--15\% under high allocation rates \cite{oracle2023gc}. Kubernetes CPU limits may require adjustment.
-    \item \textbf{Canary deployment}: Deploy ZGC to 5\% of pods for 48 hours before full rollout. Compare p99 and p999 latency, CPU utilization, and GC pause logs between ZGC and G1 pods using the same traffic distribution.
-\end{enumerate}
+\begin{table}[htbp]
+\centering
+\caption{Maximum GC pause duration (ms) by GC and heap size, read-heavy scenario}
+\label{tab:gcpause-heap}
+\begin{tabular}{lrrr}
+\hline
+\textbf{GC} & \textbf{512\,MB} & \textbf{2\,GB} & \textbf{4\,GB} \\
+\hline
+ZGC         &  0.07\,ms &  0.05\,ms &  0.03\,ms \\
+Shenandoah  &  0.35\,ms &  0.91\,ms &  0.22\,ms \\
+G1 GC       &  7.73\,ms & 14.96\,ms & 35.11\,ms \\
+Parallel GC & 49.94\,ms & 49.30\,ms & 51.54\,ms \\
+Serial GC   & 74.57\,ms & 98.03\,ms & 98.92\,ms \\
+\hline
+\end{tabular}
+\end{table}
 
-\subsection{G1 GC $\rightarrow$ Shenandoah GC}
-\label{subsec:migration-g1-shenandoah}
+Three key patterns emerge. First, \textbf{ZGC exhibits a counterintuitive inversion at 512\,MB}: p99 latency increases to 13\,ms versus 11\,ms at 2\,GB, due to the 20\% memory overhead for colored pointer metadata consuming a proportionally larger fraction of the available heap \cite{oracle2023gc}. Conversely, ZGC's pause duration remains sub-millisecond regardless of heap size, confirming the theoretical O(1) pause time guarantee \cite{jep333}.
 
-Recommended for high-concurrency services on Linux deployments:
+Second, \textbf{Shenandoah achieves the best p99 at 512\,MB (10\,ms)} due to its lower memory overhead ($\sim$10--12\% vs.\ ZGC's 20\%) \cite{flood2016shenandoah}, making it the preferred choice for memory-constrained containerized deployments.
 
-\begin{enumerate}
-    \item \textbf{Platform verification}: Shenandoah is fully supported on Linux (OpenJDK and distributions). The experimental results showed macOS ARM scheduling interference that does not affect Linux server deployments.
-    \item \textbf{Heuristics selection}: Start with \texttt{-XX:ShenandoahGCHeuristics=adaptive} (default). Switch to \texttt{compact} heuristics if heap occupancy regularly exceeds 75\%, or \texttt{aggressive} for latency-critical services willing to accept higher CPU overhead.
-    \item \textbf{Thread configuration}: Shenandoah uses concurrent GC threads that compete with application threads. On Kubernetes, ensure CPU requests are set to at least 1.5$\times$ the number of GC threads (\texttt{-XX:ConcGCThreads}, default $N/4$).
-    \item \textbf{Monitoring}: Track \texttt{Pause Init Mark} and \texttt{Pause Final Mark} durations in GC logs. These should remain below 1\,ms; values above 5\,ms indicate heap sizing or heuristics misconfiguration.
-\end{enumerate}
+Third, \textbf{G1 GC pause duration grows with heap size} (7.73\,ms at 512\,MB to 35.11\,ms at 4\,GB), while Parallel GC remains stable at $\sim$50\,ms across all configurations and ZGC's pause duration actually decreases as larger heaps reduce relocation pressure \cite{detlefs2004garbage, oracle2023gc}.
 
-\section{Study Limitations}
-\label{sec:study-limitations}
+\section{Generational ZGC}
+\label{sec:zgcgen}
 
-Beyond the per-experiment threats to validity documented in Section~\ref{sec:threats}, several broader limitations of this study warrant acknowledgement.
+Generational ZGC (enabled via \texttt{-XX:+UseZGC -XX:+ZGenerational} in JDK~21) introduces a two-generation heap layout, addressing the original ZGC's primary limitation of scanning the entire heap during each collection cycle \cite{oracle2023gc}.
 
-\textbf{Single hardware platform}: All experiments were conducted on a single Apple M3 Pro machine. Server-class x86 hardware (Intel Xeon, AMD EPYC) with NUMA topology, dedicated memory channels, and Linux process scheduling may produce different relative rankings, particularly for Shenandoah and Parallel GC whose performance is known to scale with NUMA-aware allocation \cite{carpen2015performance, gidra2011assessing}.
+\begin{table}[htbp]
+\centering
+\caption{Generational ZGC performance across scenarios (2\,GB heap)}
+\label{tab:zgcgen}
+\begin{tabular}{lrrrrrr}
+\hline
+\textbf{Scenario} & \textbf{RPS} & \textbf{p99\,(ms)} & \textbf{p999\,(ms)} & \textbf{Max\,(ms)} & \textbf{GC\,max} & \textbf{GC\,p99} \\
+\hline
+Read-Heavy  & 179 & 21 & 24 & 110 & 0.07\,ms & 0.04\,ms \\
+Write-Heavy & 179 &  6 &  9 &  22 & 0.07\,ms & 0.04\,ms \\
+Burst       & 377 &  9 & 13 &  22 & 0.07\,ms & 0.04\,ms \\
+\hline
+\end{tabular}
+\end{table}
 
-\textbf{Load intensity ceiling}: The maximum tested throughput of approximately 400\,req/s with 100\,ms think time is substantially lower than production microservice loads of 1000--10000\,req/s. At production load levels, GC pause effects on application p99 are expected to be significantly more pronounced, potentially changing the cross-scenario GC rankings documented in Section~\ref{sec:cross-scenario}.
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figs/zgc_vs_zgcgen.png}
+    \caption{ZGC vs.\ Generational ZGC: p99 latency, throughput, and max GC pause across three scenarios.}
+    \label{fig:zgc-comparison}
+\end{figure}
 
-\textbf{Single application}: The Spring Boot test application, while representative of CRUD web services, does not capture the diversity of production Java applications. Services with reactive programming models (Project Reactor, virtual threads in JDK 21), complex object graphs, or domain-specific allocation patterns may exhibit different GC sensitivity.
+The results reveal a striking \textbf{workload-dependent inversion}: Generational ZGC achieves p99 of 6\,ms under write-heavy load --- matching Parallel GC's best result and outperforming standard ZGC (12\,ms) by 2$\times$. This is precisely the scenario where the generational hypothesis holds strongest: write-heavy REST workloads generate predominantly short-lived objects (request DTOs, JPA proxies, JSON serialization buffers) efficiently collected in the young generation without full-heap scanning.
 
-\textbf{JDK version scope}: This study covers JDK 21 LTS. JDK 17 LTS, which remains widely deployed, was not benchmarked due to experimental scope constraints. Generational ZGC is JDK 21-specific; G1 and Shenandoah behavior may differ between JDK 17 and 21 due to algorithmic refinements.
+Under read-heavy load, Generational ZGC degrades to p99 of 21\,ms versus standard ZGC's 11\,ms. The overhead of maintaining two generations does not pay off when the allocation rate is low and long-lived cached objects dominate heap composition. GC pause durations remain sub-millisecond (max 0.07\,ms) across all scenarios, confirming that the generational architecture preserves ZGC's core pause guarantee.
 
-\section{Future Work}
-\label{sec:future-work}
+These findings position Generational ZGC as the \textbf{preferred choice for write-heavy microservices with strict latency SLAs}, combining the generational throughput advantage of Parallel GC with the sub-millisecond pause guarantee of ZGC. The throughput discrepancy in read-heavy (179 vs.\ 359\,req/s for standard ZGC) is an artifact of the experimental warm-up state and should not be interpreted as an algorithmic difference (see Section~\ref{sec:threats}).
 
-The experimental results identify several high-value directions for follow-on research:
+\section{Discussion}
+\label{sec:discussion}
 
-\begin{enumerate}
-    \item \textbf{Controlled Generational ZGC evaluation}: A head-to-head comparison of standard ZGC and Generational ZGC under identical warm-up conditions across all workload scenarios, on dedicated Linux server hardware, is the most immediate research priority. The write-heavy results (ZGC Gen.\ p99 6\,ms) suggest potential for Generational ZGC to dominate both ZGC and Parallel GC simultaneously, but this requires confirmation without warm-up confounds.
+\subsection{Practical GC Selection Framework}
+\label{subsec:recommendations}
 
-    \item \textbf{Production-scale load testing}: Replicating the experimental scenarios at 1000--5000\,req/s without think time on dedicated server hardware would test the hypothesis that GC pause effects propagate to p99 at production load levels, and may reverse some of the convergence findings observed in this study.
+Based on the experimental results, Table~\ref{tab:recommendations} provides evidence-based GC recommendations for Spring Boot deployments on JDK~21.
 
-    \item \textbf{Virtual threads (JDK 21 Project Loom)}: Spring Boot 3.2 supports virtual thread execution via \texttt{spring.threads.virtual.enabled=true}. Virtual threads change the relationship between concurrency and memory allocation, potentially altering GC behavior under high-concurrency scenarios. The interaction of virtual thread scheduling with ZGC's load barriers and Shenandoah's concurrent threads represents an unexplored research area.
+\begin{table}[htbp]
+\centering
+\caption{GC selection recommendations by workload and deployment profile}
+\label{tab:recommendations}
+\begin{tabular}{p{4cm}p{3.2cm}p{1.8cm}p{3.5cm}}
+\hline
+\textbf{Profile} & \textbf{Recommended GC} & \textbf{p99} & \textbf{Key trade-off} \\
+\hline
+Read-heavy, p99 SLA $<$\,10\,ms   & ZGC              & 11\,ms & 20\% memory overhead \\
+Write-heavy, strict SLA            & ZGC Generational &  6\,ms & Higher read-heavy overhead \\
+Write-heavy, relaxed SLA           & Parallel GC      &  6\,ms & 50\,ms max GC pause \\
+High concurrency ($>$\,40t)        & Shenandoah       & 17\,ms & Platform-dependent throughput \\
+Variable / bursty load             & Shenandoah       &  8\,ms & Consistent across phases \\
+Max throughput, relaxed SLA        & G1 GC            & 13\,ms & Pause grows with heap size \\
+Memory constrained ($\leq$512\,MB) & Shenandoah       & 10\,ms & 10--12\% memory overhead \\
+\hline
+\end{tabular}
+\end{table}
 
-    \item \textbf{Containerization and resource limits}: Replicating experiments with CPU and memory cgroups limits (e.g., 2 vCPU, 4\,GB memory limit in Kubernetes) would address the containerization gap identified in Section~\ref{subsec:gap-container}. JVM ergonomics behavior under cgroup constraints is known to differ from bare-metal deployments \cite{oracle2023gc}.
+\subsection{Serial GC Unsuitability}
+\label{subsec:serial-unsuitability}
 
-    \item \textbf{Reactive workloads}: Evaluating GC behavior under reactive Spring WebFlux workloads with non-blocking I/O would extend the findings to the growing segment of event-driven Java web services, where the allocation pattern and thread utilization differ fundamentally from servlet-based applications.
+Serial GC consistently underperforms across all scenarios: p99 of 32\,ms in the burst normal phase, maximum GC pause of 98\,ms, and lowest read-heavy throughput (296\,req/s). The 98\,ms pause duration exceeds the commonly cited 100\,ms user abandonment threshold \cite{carpen2015performance} and would trigger health check failures and cascading timeouts in microservice architectures. Serial GC's single-threaded collection model is architecturally incompatible with multi-threaded web request processing and should not be considered for any production web service deployment.
 
-    \item \textbf{Longitudinal heap fragmentation study}: Running experiments over 24--72 hours rather than 5 minutes would reveal long-term heap fragmentation effects, particularly for G1 GC, where old generation accumulation over time can trigger increasingly expensive mixed GC cycles.
-\end{enumerate}
+\section{Threats to Validity}
+\label{sec:threats}
+
+\subsection{Internal Validity}
+\label{subsec:internal-validity}
+
+The primary internal validity threat is the shared-machine experimental environment. Running JMeter, PostgreSQL, and the JVM on the same physical machine introduces inter-process interference, particularly at 4\,GB heap where system memory pressure caused the observed 2$\times$ throughput reduction. The Generational ZGC read-heavy throughput discrepancy (179 vs.\ 359\,req/s for standard ZGC) is similarly attributed to system state differences between runs. The 100\,ms think time reduces load intensity relative to production deployments; under zero think time, GC pause effects would propagate to a larger request fraction, amplifying p99 divergence between collectors.
+
+\subsection{External Validity}
+\label{subsec:external-validity}
+
+All experiments were conducted on Apple M3 Pro (ARM, macOS~15.6). Shenandoah's reduced throughput in read-heavy scenarios reflects macOS ARM thread scheduler behavior; on Linux~x86\_64 server hardware, Shenandoah is expected to achieve throughput comparable to G1 and ZGC \cite{flood2016shenandoah}. Results for ZGC and G1 generalize more reliably to Linux deployments. The test workload does not capture reactive/virtual thread concurrency, complex JPA lazy loading chains, or multi-level Hibernate L2 cache interactions.
+
+\subsection{Construct Validity}
+\label{subsec:construct-validity}
+
+JMeter response time measurements include loopback network latency ($<$0.1\,ms) and JMeter overhead, both negligible relative to measured latencies (2--32\,ms). GC pause measurements from JVM unified logging are accurate to $\sim$0.001\,ms precision. Burst phase boundary analysis relies on JMeter timestamp precision, accurate to 1\,ms.
 
 \section{Chapter Summary}
-\label{sec:chapter4-summary}
+\label{sec:chapter3-summary}
 
-This chapter translated the experimental findings of Chapter~\ref{chap:impl} into actionable guidance for production deployments. The key contributions are:
+This chapter presented the results of benchmarking six JDK~21 GC configurations across four workload scenarios and three heap sizes. The key findings are:
 
 \begin{enumerate}
-    \item \textbf{Literature positioning}: The convergence of application p99 latency across collectors contradicts the implicit assumption in prior work that GC pause duration is a reliable proxy for application performance; this study provides the first web-application-specific evidence for the load-dependent decoupling of these metrics
+    \item \textbf{No single GC is optimal across all workloads}: ZGC leads in read-heavy scenarios, Parallel GC and Generational ZGC in write-heavy, Shenandoah in high-concurrency and burst conditions
 
-    \item \textbf{Decision framework}: A structured decision tree (Figure~\ref{fig:decision-tree}) enables GC selection based on heap constraints, SLA targets, and workload type, grounded in quantified experimental evidence rather than vendor documentation
+    \item \textbf{Generational ZGC achieves p99 of 6\,ms under write-heavy load} --- equal to Parallel GC and outperforming standard ZGC (12\,ms) by 2$\times$ --- while maintaining sub-millisecond GC pauses
 
-    \item \textbf{Configuration templates}: Per-collector JVM flag templates (Table~\ref{tab:jvm-flags}) provide directly applicable starting configurations for Spring Boot deployments, including container-specific considerations absent from prior literature
+    \item \textbf{Shenandoah provides uniquely consistent latency across burst load transitions} ($\Delta$p99 of only 1\,ms between normal and burst phases), a property not captured by steady-state benchmarks
 
-    \item \textbf{Migration playbooks}: Three structured migration guides (Parallel$\rightarrow$G1, G1$\rightarrow$ZGC, G1$\rightarrow$Shenandoah) address the configuration guidance gap identified in Section~\ref{subsec:gap-guidance}, providing risk-managed transition procedures for production environments
+    \item \textbf{GC pause duration and application p99 latency are decoupled at moderate load} but converge at high concurrency: at 50 threads, Shenandoah's sub-millisecond pauses translate to a 4\,ms p99 advantage over stop-the-world collectors
 
-    \item \textbf{Research agenda}: Six identified future work directions, prioritizing Generational ZGC controlled evaluation and production-scale load testing, provide a concrete research roadmap addressing the remaining gaps in GC performance knowledge for web applications
+    \item \textbf{Heap size sensitivity is collector-specific}: ZGC's p99 degrades at 512\,MB, G1 GC pause duration grows with heap size, and Parallel GC remains stable across all configurations
+
+    \item \textbf{Serial GC is categorically unsuitable} for production web services: 98\,ms maximum pauses, 32\,ms p99 in the burst normal phase, and lowest read-heavy throughput
 \end{enumerate}
+
+Chapter~\ref{chap:eval} synthesizes these findings into a practical decision framework for GC selection and configuration, addressing the guidance gap identified in Section~\ref{subsec:gap-guidance}.

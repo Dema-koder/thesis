@@ -1,0 +1,827 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 3.3 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \datalist[entry]{none/global//global/global/global}
+    \entry{stackoverflow2025survey}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=84d7dc19766c446f5e4084e8fce87f82}{%
+           family={{Stack Overflow}},
+           familyi={S\bibinitperiod}}}%
+      }
+      \strng{namehash}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{fullhash}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{fullhashraw}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{bibnamehash}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{authorbibnamehash}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{authornamehash}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{authorfullhash}{84d7dc19766c446f5e4084e8fce87f82}
+      \strng{authorfullhashraw}{84d7dc19766c446f5e4084e8fce87f82}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://survey.stackoverflow.co/2025/technology}}
+      \field{note}{Accessed: 2025-11-29}
+      \field{title}{Stack Overflow Developer Survey 2025: Technology --- Programming, Scripting, and Markup Languages}
+      \field{year}{2025}
+    \endentry
+    \entry{carpen2015performance}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=2e763ad7e89aaf57b9d35cf94a6dc86b}{%
+           family={Carpen-Amarie},
+           familyi={C\bibinithyphendelim A\bibinitperiod},
+           given={Maria},
+           giveni={M\bibinitperiod}}}%
+        {{hash=3b5bb47af14b93b845c0e34a22d5c278}{%
+           family={Marlier},
+           familyi={M\bibinitperiod},
+           given={Patrick},
+           giveni={P\bibinitperiod}}}%
+        {{hash=6668285eef28becfbea5f2cf39c9dc7b}{%
+           family={Felber},
+           familyi={F\bibinitperiod},
+           given={Pascal},
+           giveni={P\bibinitperiod}}}%
+        {{hash=153c7335d72b381356518e42a59c5582}{%
+           family={Thomas},
+           familyi={T\bibinitperiod},
+           given={Gaël},
+           giveni={G\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{935626ce1a30946bbf56764808a9b352}
+      \strng{fullhash}{fc82e6084af17ce89dc55492572c3389}
+      \strng{fullhashraw}{fc82e6084af17ce89dc55492572c3389}
+      \strng{bibnamehash}{fc82e6084af17ce89dc55492572c3389}
+      \strng{authorbibnamehash}{fc82e6084af17ce89dc55492572c3389}
+      \strng{authornamehash}{935626ce1a30946bbf56764808a9b352}
+      \strng{authorfullhash}{fc82e6084af17ce89dc55492572c3389}
+      \strng{authorfullhashraw}{fc82e6084af17ce89dc55492572c3389}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the Sixth International Workshop on Programming Models and Applications for Multicores and Manycores}
+      \field{series}{PMAM '15}
+      \field{title}{A Performance Study of Java Garbage Collectors on Multicore Architectures}
+      \field{year}{2015}
+      \field{pages}{20\bibrangedash 29}
+      \range{pages}{10}
+      \verb{doi}
+      \verb 10.1145/2712386.2712404
+      \endverb
+    \endentry
+    \entry{pufek2019analysis}{inproceedings}{}{}
+      \name{author}{3}{}{%
+        {{hash=31e16965768179b4d161e295a83f4b1e}{%
+           family={Pufek},
+           familyi={P\bibinitperiod},
+           given={Paula},
+           giveni={P\bibinitperiod}}}%
+        {{hash=d61a23780abf6b9d0438677a4e3ebf9d}{%
+           family={Grgić},
+           familyi={G\bibinitperiod},
+           given={Hrvoje},
+           giveni={H\bibinitperiod}}}%
+        {{hash=98e6c6f3c799625d2bea2292cf785cf9}{%
+           family={Mihaljević},
+           familyi={M\bibinitperiod},
+           given={Branko},
+           giveni={B\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{ca3394728779d60f13d2b7fb06fcd324}
+      \strng{fullhash}{709d9e8bb84b6a4d4361001ed2aae738}
+      \strng{fullhashraw}{709d9e8bb84b6a4d4361001ed2aae738}
+      \strng{bibnamehash}{709d9e8bb84b6a4d4361001ed2aae738}
+      \strng{authorbibnamehash}{709d9e8bb84b6a4d4361001ed2aae738}
+      \strng{authornamehash}{ca3394728779d60f13d2b7fb06fcd324}
+      \strng{authorfullhash}{709d9e8bb84b6a4d4361001ed2aae738}
+      \strng{authorfullhashraw}{709d9e8bb84b6a4d4361001ed2aae738}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{2019 42nd International Convention on Information and Communication Technology, Electronics and Microelectronics (MIPRO)}
+      \field{title}{Analysis of Garbage Collection Algorithms and Memory Management in Java}
+      \field{year}{2019}
+      \field{pages}{1677\bibrangedash 1682}
+      \range{pages}{6}
+      \verb{doi}
+      \verb 10.23919/MIPRO.2019.8756844
+      \endverb
+    \endentry
+    \entry{grgic2018comparison}{inproceedings}{}{}
+      \name{author}{3}{}{%
+        {{hash=d61a23780abf6b9d0438677a4e3ebf9d}{%
+           family={Grgić},
+           familyi={G\bibinitperiod},
+           given={Hrvoje},
+           giveni={H\bibinitperiod}}}%
+        {{hash=98e6c6f3c799625d2bea2292cf785cf9}{%
+           family={Mihaljević},
+           familyi={M\bibinitperiod},
+           given={Branko},
+           giveni={B\bibinitperiod}}}%
+        {{hash=5a807ffa9d3b2e2fc72f828cd2daa7f4}{%
+           family={Radovan},
+           familyi={R\bibinitperiod},
+           given={Aleksander},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{publisher}{1}{%
+        {IEEE}%
+      }
+      \strng{namehash}{e51c52297cb767c81e3b5d101c1e541e}
+      \strng{fullhash}{c7dc29d32d908bf729edcdd0180ce4ef}
+      \strng{fullhashraw}{c7dc29d32d908bf729edcdd0180ce4ef}
+      \strng{bibnamehash}{c7dc29d32d908bf729edcdd0180ce4ef}
+      \strng{authorbibnamehash}{c7dc29d32d908bf729edcdd0180ce4ef}
+      \strng{authornamehash}{e51c52297cb767c81e3b5d101c1e541e}
+      \strng{authorfullhash}{c7dc29d32d908bf729edcdd0180ce4ef}
+      \strng{authorfullhashraw}{c7dc29d32d908bf729edcdd0180ce4ef}
+      \field{sortinit}{6}
+      \field{sortinithash}{b33bc299efb3c36abec520a4c896a66d}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{2018 41st International Convention on Information and Communication Technology, Electronics and Microelectronics (MIPRO)}
+      \field{title}{Comparison of Garbage Collectors in Java Programming Language}
+      \field{year}{2018}
+      \field{pages}{1539\bibrangedash 1544}
+      \range{pages}{6}
+      \verb{doi}
+      \verb 10.23919/MIPRO.2018.8400277
+      \endverb
+    \endentry
+    \entry{jones2011garbage}{book}{}{}
+      \name{author}{3}{}{%
+        {{hash=686f63784177f089204782d110bd55f1}{%
+           family={Jones},
+           familyi={J\bibinitperiod},
+           given={Richard},
+           giveni={R\bibinitperiod}}}%
+        {{hash=59ad84bdc11f449990ddeafefaaf93d0}{%
+           family={Hosking},
+           familyi={H\bibinitperiod},
+           given={Antony},
+           giveni={A\bibinitperiod}}}%
+        {{hash=1d1eb01e17bd3d1468f4a20f30de0a46}{%
+           family={Moss},
+           familyi={M\bibinitperiod},
+           given={Eliot},
+           giveni={E\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Boca Raton, FL, USA}%
+      }
+      \list{publisher}{1}{%
+        {Chapman & Hall/CRC}%
+      }
+      \strng{namehash}{7b24e9599088dd8fe1923f759c36413a}
+      \strng{fullhash}{9b14b13f8a589113552630a72f5a06c0}
+      \strng{fullhashraw}{9b14b13f8a589113552630a72f5a06c0}
+      \strng{bibnamehash}{9b14b13f8a589113552630a72f5a06c0}
+      \strng{authorbibnamehash}{9b14b13f8a589113552630a72f5a06c0}
+      \strng{authornamehash}{7b24e9599088dd8fe1923f759c36413a}
+      \strng{authorfullhash}{9b14b13f8a589113552630a72f5a06c0}
+      \strng{authorfullhashraw}{9b14b13f8a589113552630a72f5a06c0}
+      \field{sortinit}{7}
+      \field{sortinithash}{108d0be1b1bee9773a1173443802c0a3}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{isbn}{978-1420082791}
+      \field{title}{The Garbage Collection Handbook: The Art of Automatic Memory Management}
+      \field{year}{2011}
+    \endentry
+    \entry{lindholm2014java}{book}{}{}
+      \name{author}{4}{}{%
+        {{hash=efc7d9d3d26034142724398ad4b4467e}{%
+           family={Lindholm},
+           familyi={L\bibinitperiod},
+           given={Tim},
+           giveni={T\bibinitperiod}}}%
+        {{hash=b7f6c816ff8aadf3e93769013ec384bc}{%
+           family={Yellin},
+           familyi={Y\bibinitperiod},
+           given={Frank},
+           giveni={F\bibinitperiod}}}%
+        {{hash=075676db46622d5a64b6ff1011b9b7d0}{%
+           family={Bracha},
+           familyi={B\bibinitperiod},
+           given={Gilad},
+           giveni={G\bibinitperiod}}}%
+        {{hash=1c34391bfa51bee4b9dacbc295281374}{%
+           family={Buckley},
+           familyi={B\bibinitperiod},
+           given={Alex},
+           giveni={A\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {Boston, MA, USA}%
+      }
+      \list{publisher}{1}{%
+        {Addison-Wesley Professional}%
+      }
+      \strng{namehash}{9e2a4c38bd880568b88d56a17eae9f6e}
+      \strng{fullhash}{88c9dddf89f8f9660970b70f561a4e06}
+      \strng{fullhashraw}{88c9dddf89f8f9660970b70f561a4e06}
+      \strng{bibnamehash}{88c9dddf89f8f9660970b70f561a4e06}
+      \strng{authorbibnamehash}{88c9dddf89f8f9660970b70f561a4e06}
+      \strng{authornamehash}{9e2a4c38bd880568b88d56a17eae9f6e}
+      \strng{authorfullhash}{88c9dddf89f8f9660970b70f561a4e06}
+      \strng{authorfullhashraw}{88c9dddf89f8f9660970b70f561a4e06}
+      \field{sortinit}{8}
+      \field{sortinithash}{a231b008ebf0ecbe0b4d96dcc159445f}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{isbn}{978-0133260441}
+      \field{title}{The Java Virtual Machine Specification, Java SE 8 Edition}
+      \field{year}{2014}
+    \endentry
+    \entry{ungar1984generation}{inproceedings}{}{}
+      \name{author}{1}{}{%
+        {{hash=d3efc54e3b56f22ac669afd21d02b4a0}{%
+           family={Ungar},
+           familyi={U\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{fullhash}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{fullhashraw}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{bibnamehash}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{authorbibnamehash}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{authornamehash}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{authorfullhash}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \strng{authorfullhashraw}{d3efc54e3b56f22ac669afd21d02b4a0}
+      \field{sortinit}{9}
+      \field{sortinithash}{0a5ebc79d83c96b6579069544c73c7d4}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the First ACM SIGSOFT/SIGPLAN Software Engineering Symposium on Practical Software Development Environments}
+      \field{title}{Generation Scavenging: A Non-disruptive High Performance Storage Reclamation Algorithm}
+      \field{year}{1984}
+      \field{pages}{157\bibrangedash 167}
+      \range{pages}{11}
+      \verb{doi}
+      \verb 10.1145/800020.808261
+      \endverb
+    \endentry
+    \entry{blackburn2006dacapo}{inproceedings}{}{}
+      \name{author}{20}{}{%
+        {{hash=d13f3d1193933a0077af2fabf102a031}{%
+           family={Blackburn},
+           familyi={B\bibinitperiod},
+           given={Stephen\bibnamedelima M.},
+           giveni={S\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=858cef2bf9c10d170a4636702e203250}{%
+           family={Garner},
+           familyi={G\bibinitperiod},
+           given={Robin},
+           giveni={R\bibinitperiod}}}%
+        {{hash=c3d25d6a84041c97d95d5e3f2d1c871f}{%
+           family={Hoffmann},
+           familyi={H\bibinitperiod},
+           given={Chris},
+           giveni={C\bibinitperiod}}}%
+        {{hash=2f0cdcb0a363ee2001cdf196fc85ce12}{%
+           family={Khang},
+           familyi={K\bibinitperiod},
+           given={Asjad\bibnamedelima M.},
+           giveni={A\bibinitperiod\bibinitdelim M\bibinitperiod}}}%
+        {{hash=6c963c23d086299520db244105b0817f}{%
+           family={McKinley},
+           familyi={M\bibinitperiod},
+           given={Kathryn\bibnamedelima S.},
+           giveni={K\bibinitperiod\bibinitdelim S\bibinitperiod}}}%
+        {{hash=5be77b4ed1fd9a99a116e9ebf16aa471}{%
+           family={Bentzur},
+           familyi={B\bibinitperiod},
+           given={Rotem},
+           giveni={R\bibinitperiod}}}%
+        {{hash=d2ffbad9e0c378dddb54ea9b8797699d}{%
+           family={Diwan},
+           familyi={D\bibinitperiod},
+           given={Amer},
+           giveni={A\bibinitperiod}}}%
+        {{hash=dc56495bee511c8cc465d9ef6a0b508e}{%
+           family={Feinberg},
+           familyi={F\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=3e77ebe33e18d1efe5d6959bc23c02b6}{%
+           family={Frampton},
+           familyi={F\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod}}}%
+        {{hash=6583f64cd0bafff60134cca5691487ed}{%
+           family={Guyer},
+           familyi={G\bibinitperiod},
+           given={Samuel\bibnamedelima Z.},
+           giveni={S\bibinitperiod\bibinitdelim Z\bibinitperiod}}}%
+        {{hash=d0cc74cd4d327933748a0a2c08c39244}{%
+           family={Hirzel},
+           familyi={H\bibinitperiod},
+           given={Martin},
+           giveni={M\bibinitperiod}}}%
+        {{hash=59ad84bdc11f449990ddeafefaaf93d0}{%
+           family={Hosking},
+           familyi={H\bibinitperiod},
+           given={Antony},
+           giveni={A\bibinitperiod}}}%
+        {{hash=b42d36910a57b7020ad087c4b7cb58d6}{%
+           family={Jump},
+           familyi={J\bibinitperiod},
+           given={Maria},
+           giveni={M\bibinitperiod}}}%
+        {{hash=7812cadee0d9df7b37cc8d699d1b7cfd}{%
+           family={Lee},
+           familyi={L\bibinitperiod},
+           given={Han},
+           giveni={H\bibinitperiod}}}%
+        {{hash=4da7edd06e755496a3e96dc88a5a70de}{%
+           family={Moss},
+           familyi={M\bibinitperiod},
+           given={J.\bibnamedelimi Eliot\bibnamedelima B.},
+           giveni={J\bibinitperiod\bibinitdelim E\bibinitperiod\bibinitdelim B\bibinitperiod}}}%
+        {{hash=6900e76b235a35cc7b947db59ad6ac19}{%
+           family={Phansalkar},
+           familyi={P\bibinitperiod},
+           given={Aashish},
+           giveni={A\bibinitperiod}}}%
+        {{hash=ada11685722f17a5076e6d9806555e05}{%
+           family={Stefanović},
+           familyi={S\bibinitperiod},
+           given={Darko},
+           giveni={D\bibinitperiod}}}%
+        {{hash=f8fe39f40d74d9ebe56de789f886eb77}{%
+           family={VanDrunen},
+           familyi={V\bibinitperiod},
+           given={Thomas},
+           giveni={T\bibinitperiod}}}%
+        {{hash=6e0805fb8aa4281bec6f30a0c93e4664}{%
+           family={Dincklage},
+           familyi={D\bibinitperiod},
+           given={Daniel},
+           giveni={D\bibinitperiod},
+           prefix={von},
+           prefixi={v\bibinitperiod}}}%
+        {{hash=9101d15a1e99672480e65214e3d73c37}{%
+           family={Wiedermann},
+           familyi={W\bibinitperiod},
+           given={Ben},
+           giveni={B\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{f30fa693f6fd1feb226ade1c98ed3d2d}
+      \strng{fullhash}{0e6f70fb442c3ace7e8b5684a01349b3}
+      \strng{fullhashraw}{0e6f70fb442c3ace7e8b5684a01349b3}
+      \strng{bibnamehash}{f30fa693f6fd1feb226ade1c98ed3d2d}
+      \strng{authorbibnamehash}{f30fa693f6fd1feb226ade1c98ed3d2d}
+      \strng{authornamehash}{f30fa693f6fd1feb226ade1c98ed3d2d}
+      \strng{authorfullhash}{0e6f70fb442c3ace7e8b5684a01349b3}
+      \strng{authorfullhashraw}{0e6f70fb442c3ace7e8b5684a01349b3}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 21st Annual ACM SIGPLAN Conference on Object-Oriented Programming Systems, Languages, and Applications}
+      \field{series}{OOPSLA '06}
+      \field{title}{The DaCapo Benchmarks: Java Benchmarking Development and Analysis}
+      \field{year}{2006}
+      \field{pages}{169\bibrangedash 190}
+      \range{pages}{22}
+      \verb{doi}
+      \verb 10.1145/1167473.1167488
+      \endverb
+    \endentry
+    \entry{oracle2023gc}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=d51288dc67d9f5e0330d927a009e208b}{%
+           family={{Oracle Corporation}},
+           familyi={O\bibinitperiod}}}%
+      }
+      \strng{namehash}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{fullhash}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{fullhashraw}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{bibnamehash}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{authorbibnamehash}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{authornamehash}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{authorfullhash}{d51288dc67d9f5e0330d927a009e208b}
+      \strng{authorfullhashraw}{d51288dc67d9f5e0330d927a009e208b}
+      \field{sortinit}{1}
+      \field{sortinithash}{4f6aaa89bab872aa0999fec09ff8e98a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://docs.oracle.com/en/java/javase/21/gctuning/}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{Java Platform, Standard Edition HotSpot Virtual Machine Garbage Collection Tuning Guide, Release 21}
+      \field{year}{2023}
+    \endentry
+    \entry{detlefs2004garbage}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=d857f4b9b8d0736a7deeb8b821f32fe1}{%
+           family={Detlefs},
+           familyi={D\bibinitperiod},
+           given={David},
+           giveni={D\bibinitperiod}}}%
+        {{hash=aa60c885d4bb29b4c0b01729afcc4bbb}{%
+           family={Flood},
+           familyi={F\bibinitperiod},
+           given={Christine},
+           giveni={C\bibinitperiod}}}%
+        {{hash=966a023f08312e26f3ae242372b2fb5c}{%
+           family={Heller},
+           familyi={H\bibinitperiod},
+           given={Steve},
+           giveni={S\bibinitperiod}}}%
+        {{hash=3b0add45f5d4454553b99b870573088a}{%
+           family={Printezis},
+           familyi={P\bibinitperiod},
+           given={Tony},
+           giveni={T\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{1f2ea3fe1650f28a45c2df44f8a0b85c}
+      \strng{fullhash}{21d975b654db75cdbd1598a3b6e08651}
+      \strng{fullhashraw}{21d975b654db75cdbd1598a3b6e08651}
+      \strng{bibnamehash}{21d975b654db75cdbd1598a3b6e08651}
+      \strng{authorbibnamehash}{21d975b654db75cdbd1598a3b6e08651}
+      \strng{authornamehash}{1f2ea3fe1650f28a45c2df44f8a0b85c}
+      \strng{authorfullhash}{21d975b654db75cdbd1598a3b6e08651}
+      \strng{authorfullhashraw}{21d975b654db75cdbd1598a3b6e08651}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 4th International Symposium on Memory Management}
+      \field{series}{ISMM '04}
+      \field{title}{Garbage-First Garbage Collection}
+      \field{year}{2004}
+      \field{pages}{37\bibrangedash 48}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.1145/1029873.1029879
+      \endverb
+    \endentry
+    \entry{jep307}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=9c7489f1dfc0ef1b77d56bb6be7f5552}{%
+           family={{OpenJDK}},
+           familyi={O\bibinitperiod}}}%
+      }
+      \strng{namehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{fullhash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{fullhashraw}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{bibnamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorbibnamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authornamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorfullhash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorfullhashraw}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \field{extraname}{1}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://openjdk.org/jeps/307}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{JEP 307: Parallel Full GC for G1}
+    \endentry
+    \entry{jep333}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=9c7489f1dfc0ef1b77d56bb6be7f5552}{%
+           family={{OpenJDK}},
+           familyi={O\bibinitperiod}}}%
+      }
+      \strng{namehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{fullhash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{fullhashraw}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{bibnamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorbibnamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authornamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorfullhash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorfullhashraw}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \field{extraname}{2}
+      \field{sortinit}{2}
+      \field{sortinithash}{8b555b3791beccb63322c22f3320aa9a}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://openjdk.org/jeps/333}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{JEP 333: ZGC: A Scalable Low-Latency Garbage Collector (Experimental)}
+    \endentry
+    \entry{flood2016shenandoah}{inproceedings}{}{}
+      \name{author}{5}{}{%
+        {{hash=37737c977f134764d5aee44b734ac4f4}{%
+           family={Flood},
+           familyi={F\bibinitperiod},
+           given={Christine\bibnamedelima H.},
+           giveni={C\bibinitperiod\bibinitdelim H\bibinitperiod}}}%
+        {{hash=0a68d58195f699f40af083b701d03fe5}{%
+           family={Kennke},
+           familyi={K\bibinitperiod},
+           given={Roman},
+           giveni={R\bibinitperiod}}}%
+        {{hash=6220991bb6dc0e7a1f96c82e21d18d4c}{%
+           family={Dinn},
+           familyi={D\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod}}}%
+        {{hash=8e633fa036fcaac536dcd68efa3777eb}{%
+           family={Haley},
+           familyi={H\bibinitperiod},
+           given={Andrew},
+           giveni={A\bibinitperiod}}}%
+        {{hash=bee68421e72119af5002cfeb75e29d46}{%
+           family={Westrelin},
+           familyi={W\bibinitperiod},
+           given={Roland},
+           giveni={R\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{be68a9cab268616079ff830902aee504}
+      \strng{fullhash}{bd0af45a853e4adb7ef60231febf2541}
+      \strng{fullhashraw}{bd0af45a853e4adb7ef60231febf2541}
+      \strng{bibnamehash}{bd0af45a853e4adb7ef60231febf2541}
+      \strng{authorbibnamehash}{bd0af45a853e4adb7ef60231febf2541}
+      \strng{authornamehash}{be68a9cab268616079ff830902aee504}
+      \strng{authorfullhash}{bd0af45a853e4adb7ef60231febf2541}
+      \strng{authorfullhashraw}{bd0af45a853e4adb7ef60231febf2541}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{booktitle}{Proceedings of the 13th International Conference on Principles and Practices of Programming on the Java Platform}
+      \field{series}{PPPJ '16}
+      \field{title}{Shenandoah: An Open-Source Concurrent Compacting Garbage Collector for OpenJDK}
+      \field{year}{2016}
+      \verb{doi}
+      \verb 10.1145/2972206.2972210
+      \endverb
+    \endentry
+    \entry{jep189}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=9c7489f1dfc0ef1b77d56bb6be7f5552}{%
+           family={{OpenJDK}},
+           familyi={O\bibinitperiod}}}%
+      }
+      \strng{namehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{fullhash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{fullhashraw}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{bibnamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorbibnamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authornamehash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorfullhash}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \strng{authorfullhashraw}{9c7489f1dfc0ef1b77d56bb6be7f5552}
+      \field{extraname}{3}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://openjdk.org/jeps/189}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{JEP 189: Shenandoah: A Low-Pause-Time Garbage Collector (Experimental)}
+    \endentry
+    \entry{gidra2011assessing}{inproceedings}{}{}
+      \name{author}{4}{}{%
+        {{hash=d2a8c9c6a37788bfef2bfc5900cdb130}{%
+           family={Gidra},
+           familyi={G\bibinitperiod},
+           given={Lokesh},
+           giveni={L\bibinitperiod}}}%
+        {{hash=153c7335d72b381356518e42a59c5582}{%
+           family={Thomas},
+           familyi={T\bibinitperiod},
+           given={Gaël},
+           giveni={G\bibinitperiod}}}%
+        {{hash=72c1adfd24208f1ccc6dc69d2143d996}{%
+           family={Sopena},
+           familyi={S\bibinitperiod},
+           given={Julien},
+           giveni={J\bibinitperiod}}}%
+        {{hash=f13a03ea8c9e34968f9bc55bb4e93d9f}{%
+           family={Shapiro},
+           familyi={S\bibinitperiod},
+           given={Marc},
+           giveni={M\bibinitperiod}}}%
+      }
+      \list{location}{1}{%
+        {New York, NY, USA}%
+      }
+      \list{publisher}{1}{%
+        {ACM}%
+      }
+      \strng{namehash}{e83c64a9f42cc5b7e78e915cf024a17c}
+      \strng{fullhash}{528791f5e70cb229297e4124ccb0cbb8}
+      \strng{fullhashraw}{528791f5e70cb229297e4124ccb0cbb8}
+      \strng{bibnamehash}{528791f5e70cb229297e4124ccb0cbb8}
+      \strng{authorbibnamehash}{528791f5e70cb229297e4124ccb0cbb8}
+      \strng{authornamehash}{e83c64a9f42cc5b7e78e915cf024a17c}
+      \strng{authorfullhash}{528791f5e70cb229297e4124ccb0cbb8}
+      \strng{authorfullhashraw}{528791f5e70cb229297e4124ccb0cbb8}
+      \field{sortinit}{3}
+      \field{sortinithash}{ad6fe7482ffbd7b9f99c9e8b5dccd3d7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{journaltitle}{ACM SIGOPS Operating Systems Review}
+      \field{number}{3}
+      \field{title}{Assessing the Scalability of Garbage Collectors on Many Cores}
+      \field{volume}{45}
+      \field{year}{2011}
+      \field{pages}{15\bibrangedash 19}
+      \range{pages}{5}
+      \verb{doi}
+      \verb 10.1145/2094091.2094096
+      \endverb
+    \endentry
+    \entry{springboot2024}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=7da57f1962f18dcb73eba4178b672fed}{%
+           family={{VMware, Inc.}},
+           familyi={V\bibinitperiod}}}%
+      }
+      \strng{namehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{fullhash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{fullhashraw}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{bibnamehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authorbibnamehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authornamehash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authorfullhash}{7da57f1962f18dcb73eba4178b672fed}
+      \strng{authorfullhashraw}{7da57f1962f18dcb73eba4178b672fed}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://docs.spring.io/spring-boot/docs/3.2.x/reference/html/}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{Spring Boot Reference Documentation, Version 3.2}
+      \field{year}{2024}
+    \endentry
+    \entry{hibernate2024}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=184a913e122c18374ca03bc02b30c050}{%
+           family={{Red Hat, Inc.}},
+           familyi={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{184a913e122c18374ca03bc02b30c050}
+      \strng{fullhash}{184a913e122c18374ca03bc02b30c050}
+      \strng{fullhashraw}{184a913e122c18374ca03bc02b30c050}
+      \strng{bibnamehash}{184a913e122c18374ca03bc02b30c050}
+      \strng{authorbibnamehash}{184a913e122c18374ca03bc02b30c050}
+      \strng{authornamehash}{184a913e122c18374ca03bc02b30c050}
+      \strng{authorfullhash}{184a913e122c18374ca03bc02b30c050}
+      \strng{authorfullhashraw}{184a913e122c18374ca03bc02b30c050}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://docs.jboss.org/hibernate/orm/6.4/userguide/html_single/}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{Hibernate ORM 6.4 User Guide}
+      \field{year}{2024}
+    \endentry
+    \entry{postgresql2024}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=917cf2b2062aec0c604dbecc106084cd}{%
+           family={{The PostgreSQL Global Development Group}},
+           familyi={T\bibinitperiod}}}%
+      }
+      \strng{namehash}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{fullhash}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{fullhashraw}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{bibnamehash}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{authorbibnamehash}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{authornamehash}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{authorfullhash}{917cf2b2062aec0c604dbecc106084cd}
+      \strng{authorfullhashraw}{917cf2b2062aec0c604dbecc106084cd}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://www.postgresql.org/docs/16/}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{PostgreSQL 16 Documentation}
+      \field{year}{2024}
+    \endentry
+    \entry{hikaricp2024}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=f6e21d8e09470b33af7c183e2c927ac6}{%
+           family={Wooldridge},
+           familyi={W\bibinitperiod},
+           given={Brett},
+           giveni={B\bibinitperiod}}}%
+      }
+      \strng{namehash}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{fullhash}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{fullhashraw}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{bibnamehash}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{authorbibnamehash}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{authornamehash}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{authorfullhash}{f6e21d8e09470b33af7c183e2c927ac6}
+      \strng{authorfullhashraw}{f6e21d8e09470b33af7c183e2c927ac6}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://github.com/brettwooldridge/HikariCP}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{{HikariCP}: A Solid, High-Performance, {JDBC} Connection Pool}
+      \field{year}{2024}
+    \endentry
+    \entry{caffeine2024}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=73efb03c28f2c6d8b1c2fc5d0ea8916f}{%
+           family={Manes},
+           familyi={M\bibinitperiod},
+           given={Ben},
+           giveni={B\bibinitperiod}}}%
+      }
+      \strng{namehash}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{fullhash}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{fullhashraw}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{bibnamehash}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{authorbibnamehash}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{authornamehash}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{authorfullhash}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \strng{authorfullhashraw}{73efb03c28f2c6d8b1c2fc5d0ea8916f}
+      \field{sortinit}{4}
+      \field{sortinithash}{9381316451d1b9788675a07e972a12a7}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://github.com/ben-manes/caffeine}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{Caffeine: A High Performance Caching Library for {Java}}
+      \field{year}{2024}
+    \endentry
+    \entry{jmeter2024}{misc}{}{}
+      \name{author}{1}{}{%
+        {{hash=8b499b5be8914246b406785e1327dbb3}{%
+           family={{Apache Software Foundation}},
+           familyi={A\bibinitperiod}}}%
+      }
+      \strng{namehash}{8b499b5be8914246b406785e1327dbb3}
+      \strng{fullhash}{8b499b5be8914246b406785e1327dbb3}
+      \strng{fullhashraw}{8b499b5be8914246b406785e1327dbb3}
+      \strng{bibnamehash}{8b499b5be8914246b406785e1327dbb3}
+      \strng{authorbibnamehash}{8b499b5be8914246b406785e1327dbb3}
+      \strng{authornamehash}{8b499b5be8914246b406785e1327dbb3}
+      \strng{authorfullhash}{8b499b5be8914246b406785e1327dbb3}
+      \strng{authorfullhashraw}{8b499b5be8914246b406785e1327dbb3}
+      \field{sortinit}{5}
+      \field{sortinithash}{20e9b4b0b173788c5dace24730f47d8c}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{howpublished}{\url{https://jmeter.apache.org/usermanual/index.html}}
+      \field{note}{Accessed: 2025-11-01}
+      \field{title}{Apache {JMeter} 5.6.3 User's Manual}
+      \field{year}{2024}
+    \endentry
+  \enddatalist
+\endrefsection
+\endinput
+
