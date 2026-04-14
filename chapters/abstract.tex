@@ -1,11 +1,28 @@
 \begin{abstract}
 
-The paper compares the performance of Java garbage collectors (Serial, Parallel, G1, ZGC, Shenandoah) on typical Spring Boot web applications. Existing research uses synthetic benchmarks (DaCapo) or application-specific (Cassandra), leaving a gap in understanding GC behavior in common web services with REST APIs, databases, and caching.
+This thesis evaluates the performance of six Java garbage collector
+configurations --- Serial GC, Parallel GC, G1 GC, ZGC, Generational ZGC,
+and Shenandoah GC --- on a representative Spring Boot web application under
+four workload scenarios and three heap sizes, using JDK~21~LTS. Existing
+research relies on synthetic benchmarks (DaCapo) or specialized systems
+(Apache Cassandra), leaving a gap in understanding GC behavior in common
+web services with REST APIs, ORM persistence, and application-level caching.
 
-The work includes a review of the literature on GC theory and architecture, the development of a testing methodology tailored to the specifics of web applications, and conducting experiments on a reference Spring Boot application. The latest JDK 17 LTS and JDK 21 LTS are used, including modern low-latency assemblers that have not been studied before in web applications. Special attention is paid to the metrics critical for production: tail latency (p99, p999), SLA compliance, distribution of delays under load.
+The study measures tail latency percentiles (p95, p99, p999), throughput,
+and GC pause characteristics across read-heavy, write-heavy, high-concurrency,
+and burst traffic scenarios. Key findings include: no single collector is
+universally optimal --- Parallel GC achieves the best write-heavy p99
+(6\,ms), ZGC leads under read-heavy load (p99 11\,ms, max pause 0.05\,ms),
+and Shenandoah provides uniquely stable latency under burst traffic
+($\Delta$p99\,$=$\,1\,ms across load phases). Generational ZGC matches
+Parallel GC's write-heavy performance while maintaining sub-millisecond
+GC pauses.
 
-Results --- practical recommendations for choosing and configuring GC: decision tree and migration guidelines for real enterprise applications. The work fills in research gaps and provides applicable solutions for optimizing Java web applications.
+Results are synthesized into a GC selection decision tree, per-collector
+JVM configuration templates, and production migration playbooks for
+Spring Boot deployments on JDK~21.
 
-\textbf{Keywords}: Java, garbage collection, JVM, G1 GC, ZGC, Shenandoah, performance, Web applications, Spring Boot.
+\textbf{Keywords}: Java, garbage collection, JVM, G1 GC, ZGC, Shenandoah,
+Generational ZGC, performance benchmarking, Spring Boot, tail latency.
 
 \end{abstract}
