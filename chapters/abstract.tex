@@ -1,26 +1,30 @@
 \begin{abstract}
 
-This thesis evaluates the performance of six Java garbage collector
+This thesis investigates the performance of six Java garbage collector
 configurations --- Serial GC, Parallel GC, G1 GC, ZGC, Generational ZGC,
 and Shenandoah GC --- on a representative Spring Boot web application under
-four workload scenarios and three heap sizes, using JDK~21~LTS. Existing
-research relies on synthetic benchmarks (DaCapo) or specialized systems
-(Apache Cassandra), leaving a gap in understanding GC behavior in common
-web services with REST APIs, ORM persistence, and application-level caching.
+four workload scenarios and three heap size configurations, using JDK~21~LTS.
+Most prior studies rely on synthetic benchmarks such as DaCapo or
+application-specific systems such as Apache Cassandra, and therefore do not
+capture the behavior of typical web services with REST APIs, ORM-based
+persistence, and application-level caching --- a gap this work addresses.
 
-The study measures tail latency percentiles (p95, p99, p999), throughput,
-and GC pause characteristics across read-heavy, write-heavy, high-concurrency,
-and burst traffic scenarios. Key findings include: no single collector is
-universally optimal --- Parallel GC achieves the best write-heavy p99
-(6\,ms), ZGC leads under read-heavy load (p99 11\,ms, max pause 0.05\,ms),
-and Shenandoah provides uniquely stable latency under burst traffic
-($\Delta$p99\,$=$\,1\,ms across load phases). Generational ZGC matches
-Parallel GC's write-heavy performance while maintaining sub-millisecond
-GC pauses.
+Experiments measure tail latency percentiles (p95, p99, p999), throughput,
+and GC pause characteristics across read-heavy, write-heavy,
+high-concurrency, and burst traffic scenarios. No single collector performs
+best across all workloads. Under write-heavy load, Parallel GC achieves the
+lowest p99 at 6\,ms. ZGC leads under read-heavy conditions with p99 of
+11\,ms and a maximum GC pause of only 0.05\,ms. Shenandoah demonstrates
+unique stability under burst traffic, with a p99 variation of just 1\,ms
+across load phases. Generational ZGC matches Parallel GC on write-heavy
+workloads while maintaining sub-millisecond GC pauses. The results also
+show that low-pause concurrent collectors significantly reduce latency
+variability in web applications compared to stop-the-world alternatives.
 
-Results are synthesized into a GC selection decision tree, per-collector
-JVM configuration templates, and production migration playbooks for
-Spring Boot deployments on JDK~21.
+The findings are synthesized into a GC selection decision tree grounded in
+experimental evidence, per-collector JVM configuration templates for
+containerized Spring Boot deployments, and migration guides for the most
+common GC transitions in production environments on JDK~21.
 
 \textbf{Keywords}: Java, garbage collection, JVM, G1 GC, ZGC, Shenandoah,
 Generational ZGC, performance benchmarking, Spring Boot, tail latency.
